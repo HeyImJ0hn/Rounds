@@ -11,19 +11,24 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
 import dev.jpires.rounds.ui.theme.RoundsTheme
+import dev.jpires.rounds.view.composables.BottomNav
+import dev.jpires.rounds.view.composables.PreviewNavHost
+import dev.jpires.rounds.view.composables.SetupNavHost
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+//        enableEdgeToEdge()
         setContent {
             RoundsTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                val navController = rememberNavController()
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    bottomBar = { BottomNav(navController) }
+                ) { innerPadding ->
+                    SetupNavHost(navController = navController, modifier = Modifier.padding(innerPadding))
                 }
             }
         }
@@ -40,8 +45,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
 @Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
-    RoundsTheme {
-        Greeting("Android")
-    }
+fun PreviewMainActivity() {
+    val navController = rememberNavController()
+    PreviewNavHost(navController = navController)
 }
