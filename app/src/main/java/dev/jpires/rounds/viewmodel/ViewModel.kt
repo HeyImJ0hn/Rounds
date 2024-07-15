@@ -4,14 +4,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dev.jpires.rounds.model.data.Preset
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.util.Locale
+import java.util.logging.Logger
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
 
-class ViewModel {
+class ViewModel : ViewModel(){
 
     private var roundLength: Duration by mutableStateOf(2.minutes)
     private var restTime: Duration by mutableStateOf(1.minutes)
@@ -21,9 +29,35 @@ class ViewModel {
     private var currentRound: Int by mutableIntStateOf(1)
     private var currentRoundTime: Duration by mutableStateOf(roundLength)
     private var currentRestTime: Duration by mutableStateOf(restTime)
-    private var currentPrepTime: Duration by mutableStateOf(prepTime)
+
+    private var _currentPrepTime = MutableStateFlow(prepTime)
+    val currentPrepTime
+        get() = _currentPrepTime.asStateFlow()
 
     private var paused: Boolean by mutableStateOf(false)
+
+    private var timerJob: Job? = null
+
+    fun startTimer() {
+        paused = false
+        timerJob?.cancel()
+        timerJob = viewModelScope.launch {
+            while (_currentPrepTime.value > Duration.ZERO) {
+                delay(1000)
+                decrementCurrentPrepTime()
+            }
+        }
+    }
+
+    fun pauseTimer() {
+        paused = true
+        timerJob?.cancel()
+    }
+
+    fun stopTimer() {
+        _currentPrepTime.value = prepTime
+        timerJob?.cancel()
+    }
 
     fun getCurrentRoundTimeDuration(): Duration = currentRoundTime
     fun getFormattedCurrentRoundTime(): String = formatDuration(currentRoundTime)
@@ -41,10 +75,10 @@ class ViewModel {
     }
 
     fun getCurrentPrepTimeDuration() = currentPrepTime
-    fun getFormattedCurrentPrepTime() = formatDuration(currentPrepTime)
+    fun getFormattedCurrentPrepTime(duration: Duration) = formatDuration(duration)
     fun decrementCurrentPrepTime() {
-        if (currentPrepTime > 0.seconds) {
-            currentPrepTime -= 1.seconds
+        if (_currentPrepTime.value > 0.seconds) {
+            _currentPrepTime.value -= 1.seconds
         }
     }
 
@@ -100,13 +134,13 @@ class ViewModel {
 
     fun incrementPrepTime() {
         prepTime += 5.seconds
-        currentPrepTime = prepTime
+        _currentPrepTime.value = prepTime
     }
 
     fun decrementPrepTime() {
         if (prepTime > 5.seconds) {
             prepTime -= 5.seconds
-            currentPrepTime = prepTime
+            _currentPrepTime.value = prepTime
         }
     }
 

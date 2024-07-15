@@ -28,6 +28,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -112,44 +113,43 @@ fun SkipRoundButton(viewModel: ViewModel) {
 
 @Composable
 fun CentralTimer(viewModel: ViewModel) {
-    var isRunning by remember { mutableStateOf(true) }
+//    var isRunning by remember { mutableStateOf(true) }
+    val currentPrepTime by viewModel.currentPrepTime.collectAsState()
 
     Text(
-        text = if (viewModel.getCurrentPrepTimeDuration() > 0.seconds)
-            viewModel.getFormattedCurrentPrepTime()
-        else
-            viewModel.getFormattedCurrentRoundTime(),
+        text = viewModel.getFormattedCurrentPrepTime(currentPrepTime),
         fontSize = 96.sp,
         fontWeight = FontWeight.Black
     )
 
-    LaunchedEffect(isRunning) {
-        if (isRunning) {
-            while (viewModel.getCurrentPrepTimeDuration() > 0.seconds) {
-                Logger.getGlobal().info("Current round time: ${viewModel.getCurrentPrepTimeDuration()}")
-                delay(1000L)
-                viewModel.decrementCurrentPrepTime()
-            }
-            if (viewModel.getCurrentPrepTimeDuration() <= 0.seconds) {
-                while (viewModel.getCurrentRoundTimeDuration() > 0.seconds) {
-                    Logger.getGlobal().info("Current round time: ${viewModel.getCurrentRoundTimeDuration()}")
-                    delay(1000L)
-                    viewModel.decrementCurrentRoundTime()
-                }
-            }
-            isRunning = false
-        }
+    LaunchedEffect(Unit) {
+        viewModel.startTimer()
     }
+
+//    LaunchedEffect(isRunning) {
+//        if (isRunning) {
+//            while (viewModel.getCurrentPrepTimeDuration().value > 0.seconds) {
+//                Logger.getGlobal().info("Current round time: ${viewModel.getCurrentPrepTimeDuration()}")
+//                delay(1000L)
+//                viewModel.decrementCurrentPrepTime()
+//            }
+//            if (viewModel.getCurrentPrepTimeDuration().value <= 0.seconds) {
+//                while (viewModel.getCurrentRoundTimeDuration() > 0.seconds) {
+//                    Logger.getGlobal().info("Current round time: ${viewModel.getCurrentRoundTimeDuration()}")
+//                    delay(1000L)
+//                    viewModel.decrementCurrentRoundTime()
+//                }
+//            }
+//            isRunning = false
+//        }
+//    }
 
 }
 
 @Composable
 fun TotalTime(viewModel: ViewModel) {
     Text(
-        text = if (viewModel.getCurrentPrepTimeDuration() > 0.seconds)
-            viewModel.getFormattedPrepTime()
-        else
-            viewModel.getFormattedRoundLength(),
+        text = viewModel.getFormattedPrepTime(),
         fontSize = 24.sp,
         fontWeight = FontWeight.Normal,
         modifier = Modifier.padding(top = 12.dp)
@@ -213,7 +213,7 @@ fun Pause(viewModel: ViewModel) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(
-            onClick = { viewModel.togglePause() },
+            onClick = { viewModel.pauseTimer() },
             modifier = Modifier.size(96.dp)
         ) {
             Icon(
@@ -233,7 +233,7 @@ fun PausedButtons(viewModel: ViewModel, navController: NavController) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Resume
-        IconButton(onClick = { viewModel.togglePause() }, modifier = Modifier.size(96.dp)) {
+        IconButton(onClick = { viewModel.startTimer() }, modifier = Modifier.size(96.dp)) {
             Icon(
                 imageVector = Icons.Rounded.PlayArrow,
                 contentDescription = "Resume",
