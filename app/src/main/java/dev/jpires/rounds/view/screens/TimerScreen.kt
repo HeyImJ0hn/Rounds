@@ -2,7 +2,6 @@ package dev.jpires.rounds.view.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Stop
@@ -41,25 +39,31 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import dev.jpires.rounds.model.data.TimerType
 import dev.jpires.rounds.viewmodel.ViewModel
-import kotlinx.coroutines.delay
-import java.util.logging.Logger
-import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun TimerScreen(viewModel: ViewModel, navController: NavController) {
+    val isTimerFinished by viewModel.isTimerFinished.collectAsState()
+
+    LaunchedEffect(isTimerFinished) {
+        if (isTimerFinished) {
+            navController.navigate("finished_screen")
+        }
+    }
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxSize()
     ) {
-        Top(viewModel, Modifier.weight(1f))
-        Center(viewModel, Modifier.weight(1f))
-        Bottom(viewModel, Modifier.weight(1f), navController)
+        TimerTop(viewModel, Modifier.weight(1f))
+        TimerCenter(viewModel, Modifier.weight(1f))
+        TimerBottom(viewModel, Modifier.weight(1f), navController)
     }
 }
 
 @Composable
-fun Top(viewModel: ViewModel, modifier: Modifier = Modifier) {
+fun TimerTop(viewModel: ViewModel, modifier: Modifier = Modifier) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier.fillMaxSize()
@@ -67,14 +71,14 @@ fun Top(viewModel: ViewModel, modifier: Modifier = Modifier) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            TopText(viewModel)
+            TimerTopText(viewModel)
             SkipRoundButton(viewModel)
         }
     }
 }
 
 @Composable
-fun TopText(viewModel: ViewModel) {
+fun TimerTopText(viewModel: ViewModel) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(16.dp)
@@ -97,7 +101,7 @@ fun TopText(viewModel: ViewModel) {
 @Composable
 fun SkipRoundButton(viewModel: ViewModel) {
     OutlinedButton(
-        onClick = { viewModel.incrementRounds() },
+        onClick = { viewModel.skipTimer() },
         border = BorderStroke(2.dp, MaterialTheme.colorScheme.onBackground),
         modifier = Modifier
             .fillMaxWidth()
@@ -113,11 +117,17 @@ fun SkipRoundButton(viewModel: ViewModel) {
 
 @Composable
 fun CentralTimer(viewModel: ViewModel) {
-//    var isRunning by remember { mutableStateOf(true) }
     val currentPrepTime by viewModel.currentPrepTime.collectAsState()
+    val currentRoundTime by viewModel.currentRoundTime.collectAsState()
+    val currentRestTime by viewModel.currentRestTime.collectAsState()
+    val currentTimer by viewModel.currentTimer.collectAsState()
 
     Text(
-        text = viewModel.getFormattedCurrentPrepTime(currentPrepTime),
+        text = when (currentTimer) {
+            TimerType.PREP -> viewModel.getFormattedCurrentPrepTime(currentPrepTime)
+            TimerType.ROUND -> viewModel.getFormattedCurrentRoundTime(currentRoundTime)
+            TimerType.REST -> viewModel.getFormattedCurrentRestTime(currentRestTime)
+        },
         fontSize = 96.sp,
         fontWeight = FontWeight.Black
     )
@@ -126,30 +136,18 @@ fun CentralTimer(viewModel: ViewModel) {
         viewModel.startTimer()
     }
 
-//    LaunchedEffect(isRunning) {
-//        if (isRunning) {
-//            while (viewModel.getCurrentPrepTimeDuration().value > 0.seconds) {
-//                Logger.getGlobal().info("Current round time: ${viewModel.getCurrentPrepTimeDuration()}")
-//                delay(1000L)
-//                viewModel.decrementCurrentPrepTime()
-//            }
-//            if (viewModel.getCurrentPrepTimeDuration().value <= 0.seconds) {
-//                while (viewModel.getCurrentRoundTimeDuration() > 0.seconds) {
-//                    Logger.getGlobal().info("Current round time: ${viewModel.getCurrentRoundTimeDuration()}")
-//                    delay(1000L)
-//                    viewModel.decrementCurrentRoundTime()
-//                }
-//            }
-//            isRunning = false
-//        }
-//    }
-
 }
 
 @Composable
 fun TotalTime(viewModel: ViewModel) {
+    val currentTimer by viewModel.currentTimer.collectAsState()
+
     Text(
-        text = viewModel.getFormattedPrepTime(),
+        text = when (currentTimer) {
+            TimerType.PREP -> viewModel.getFormattedPrepTime()
+            TimerType.ROUND -> viewModel.getFormattedRoundLength()
+            TimerType.REST -> viewModel.getFormattedRestTime()
+        },
         fontSize = 24.sp,
         fontWeight = FontWeight.Normal,
         modifier = Modifier.padding(top = 12.dp)
@@ -157,7 +155,7 @@ fun TotalTime(viewModel: ViewModel) {
 }
 
 @Composable
-fun MiddleLine() {
+fun TimerMiddleLine() {
     Canvas(
         modifier = Modifier
             .width(96.dp)
@@ -173,7 +171,7 @@ fun MiddleLine() {
 }
 
 @Composable
-fun Center(viewModel: ViewModel, modifier: Modifier = Modifier) {
+fun TimerCenter(viewModel: ViewModel, modifier: Modifier = Modifier) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier.fillMaxSize()
@@ -183,14 +181,14 @@ fun Center(viewModel: ViewModel, modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxWidth()
         ) {
             CentralTimer(viewModel)
-            MiddleLine()
+            TimerMiddleLine()
             TotalTime(viewModel)
         }
     }
 }
 
 @Composable
-fun Bottom(viewModel: ViewModel, modifier: Modifier = Modifier, navController: NavController) {
+fun TimerBottom(viewModel: ViewModel, modifier: Modifier = Modifier, navController: NavController) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier.fillMaxSize()
@@ -278,6 +276,7 @@ fun PausedButtons(viewModel: ViewModel, navController: NavController) {
                         onClick = {
                             showDialog = false
                             navController.navigate("home")
+                            viewModel.stopTimer()
                           },
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
                     ) {

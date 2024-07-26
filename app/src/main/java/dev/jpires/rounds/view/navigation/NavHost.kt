@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import dev.jpires.rounds.Greeting
+import dev.jpires.rounds.view.screens.FinishedScreen
 import dev.jpires.rounds.view.screens.HomeScreen
 import dev.jpires.rounds.view.screens.TimerScreen
 import dev.jpires.rounds.viewmodel.ViewModel
@@ -22,6 +23,7 @@ fun SetupNavHost(navController: NavHostController, modifier: Modifier = Modifier
         composable(BottomNavItem.Presets.route) { Greeting(name = "Presets") }
         composable(BottomNavItem.Settings.route) { Greeting(name = "Settings") }
         composable("timer_screen") { TimerScreen(viewModel, navController) }
+        composable("finished_screen") { FinishedScreen(viewModel, navController) }
     }
 }
 
