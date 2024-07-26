@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.jpires.rounds.R
 import dev.jpires.rounds.model.data.TimerType
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -51,23 +52,33 @@ class ViewModel : ViewModel(){
     val isTimerFinished
         get() = _isTimerFinished.asStateFlow()
 
-    fun startTimer() {
+    fun startTimer(playSound: (Int) -> Unit) {
         paused = false
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
-            while (_currentPrepTime.value > Duration.ZERO) {
+            while (_currentPrepTime.value >= Duration.ZERO) {
                 _currentTimer.value = TimerType.PREP
+                if (_currentPrepTime.value < 3.seconds)
+                    playSound(R.raw.beep)
                 delay(1000)
                 decrementCurrentPrepTime()
             }
             while (currentRound <= rounds) {
-                while (_currentRoundTime.value > Duration.ZERO) {
+                playSound(R.raw.round_start)
+                while (_currentRoundTime.value >= Duration.ZERO) {
                     _currentTimer.value = TimerType.ROUND
                     delay(1000)
+                    if (_currentRoundTime.value == 11.seconds)
+                        playSound(R.raw.ten_second_warning)
                     decrementCurrentRoundTime()
                 }
-                while (_currentRestTime.value > Duration.ZERO) {
+                playSound(R.raw.round_end)
+                while (_currentRestTime.value >= Duration.ZERO) {
                     _currentTimer.value = TimerType.REST
+                    if (_currentRoundTime.value == 11.seconds)
+                        playSound(R.raw.ten_second_warning)
+                    if (_currentRestTime.value < 3.seconds)
+                        playSound(R.raw.beep)
                     delay(1000)
                     decrementCurrentRestTime()
                 }
@@ -105,14 +116,14 @@ class ViewModel : ViewModel(){
 
     fun getFormattedCurrentRoundTime(duration: Duration)= formatDuration(duration)
     fun decrementCurrentRoundTime() {
-        if (_currentRoundTime.value > 0.seconds) {
+        if (_currentRoundTime.value >= 0.seconds) {
             _currentRoundTime.value -= 1.seconds
         }
     }
 
     fun getFormattedCurrentRestTime(duration: Duration) = formatDuration(duration)
     fun decrementCurrentRestTime() {
-        if (_currentRestTime.value > 0.seconds) {
+        if (_currentRestTime.value >= 0.seconds) {
             _currentRestTime.value -= 1.seconds
         }
     }
@@ -124,7 +135,7 @@ class ViewModel : ViewModel(){
     fun getCurrentPrepTimeDuration() = currentPrepTime
     fun getFormattedCurrentPrepTime(duration: Duration) = formatDuration(duration)
     fun decrementCurrentPrepTime() {
-        if (_currentPrepTime.value > 0.seconds) {
+        if (_currentPrepTime.value >= 0.seconds) {
             _currentPrepTime.value -= 1.seconds
         }
     }
@@ -151,21 +162,25 @@ class ViewModel : ViewModel(){
 
     fun incrementRoundLength() {
          roundLength += 5.seconds
+        _currentRoundTime.value = roundLength
     }
 
     fun decrementRoundLength() {
         if (roundLength > 5.seconds) {
             roundLength -= 5.seconds
+            _currentRoundTime.value = roundLength
         }
     }
 
     fun incrementRestTime() {
         restTime += 5.seconds
+        _currentRestTime.value = restTime
     }
 
     fun decrementRestTime() {
         if (restTime > 5.seconds) {
             restTime -= 5.seconds
+            _currentRestTime.value = restTime
         }
     }
 

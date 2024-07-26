@@ -1,5 +1,7 @@
 package dev.jpires.rounds.view.screens
 
+import android.content.Context
+import android.media.MediaPlayer
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
@@ -35,10 +37,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import dev.jpires.rounds.R
 import dev.jpires.rounds.model.data.TimerType
 import dev.jpires.rounds.viewmodel.ViewModel
 
@@ -62,6 +66,13 @@ fun TimerScreen(viewModel: ViewModel, navController: NavController) {
     }
 }
 
+fun playSound(context: Context, soundResId: Int) {
+    MediaPlayer.create(context, soundResId).apply {
+        start()
+        setOnCompletionListener { release() }
+    }
+}
+
 @Composable
 fun TimerTop(viewModel: ViewModel, modifier: Modifier = Modifier) {
     Box(
@@ -73,6 +84,7 @@ fun TimerTop(viewModel: ViewModel, modifier: Modifier = Modifier) {
         ) {
             TimerTopText(viewModel)
             SkipRoundButton(viewModel)
+            TimerTopTextRoundType(viewModel)
         }
     }
 }
@@ -116,11 +128,30 @@ fun SkipRoundButton(viewModel: ViewModel) {
 }
 
 @Composable
+fun TimerTopTextRoundType(viewModel: ViewModel) {
+    val currentTimer by viewModel.currentTimer.collectAsState()
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Text(
+            text = currentTimer.toString(),
+            color = MaterialTheme.colorScheme.tertiary,
+            fontWeight = FontWeight.Black,
+            fontSize = 32.sp
+        )
+    }
+}
+
+@Composable
 fun CentralTimer(viewModel: ViewModel) {
     val currentPrepTime by viewModel.currentPrepTime.collectAsState()
     val currentRoundTime by viewModel.currentRoundTime.collectAsState()
     val currentRestTime by viewModel.currentRestTime.collectAsState()
     val currentTimer by viewModel.currentTimer.collectAsState()
+
+    val context = LocalContext.current
 
     Text(
         text = when (currentTimer) {
@@ -133,7 +164,7 @@ fun CentralTimer(viewModel: ViewModel) {
     )
 
     LaunchedEffect(Unit) {
-        viewModel.startTimer()
+        viewModel.startTimer { soundResId -> playSound(context, soundResId) }
     }
 
 }
@@ -227,11 +258,13 @@ fun Pause(viewModel: ViewModel) {
 @Composable
 fun PausedButtons(viewModel: ViewModel, navController: NavController) {
     var showDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
     Row(
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Resume
-        IconButton(onClick = { viewModel.startTimer() }, modifier = Modifier.size(96.dp)) {
+        IconButton(onClick = { viewModel.startTimer { soundResId -> playSound(context, soundResId) } }, modifier = Modifier.size(96.dp)) {
             Icon(
                 imageVector = Icons.Rounded.PlayArrow,
                 contentDescription = "Resume",

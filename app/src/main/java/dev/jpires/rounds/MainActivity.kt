@@ -28,8 +28,8 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val currentRoute = currentRoute(navController)
                 Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    bottomBar = { if (currentRoute != "timer_screen" && currentRoute != "finished_screen") BottomNav(navController) }
+                    modifier = Modifier.fillMaxSize()
+//                    bottomBar = { if (currentRoute != "timer_screen" && currentRoute != "finished_screen") BottomNav(navController) }
                 ) { innerPadding ->
                     SetupNavHost(navController = navController, modifier = Modifier.padding(innerPadding), viewModel)
                 }
