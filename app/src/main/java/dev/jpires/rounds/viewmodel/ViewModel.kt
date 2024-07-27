@@ -58,7 +58,7 @@ class ViewModel : ViewModel(){
         timerJob = viewModelScope.launch {
             while (_currentPrepTime.value >= Duration.ZERO) {
                 _currentTimer.value = TimerType.PREP
-                if (_currentPrepTime.value < 3.seconds)
+                if (_currentPrepTime.value in 0.seconds..2.seconds)
                     playSound(R.raw.beep)
                 delay(1000)
                 decrementCurrentPrepTime()
@@ -67,17 +67,17 @@ class ViewModel : ViewModel(){
                 playSound(R.raw.round_start)
                 while (_currentRoundTime.value >= Duration.ZERO) {
                     _currentTimer.value = TimerType.ROUND
-                    delay(1000)
-                    if (_currentRoundTime.value == 11.seconds)
+                    if (_currentRoundTime.value == 10.seconds)
                         playSound(R.raw.ten_second_warning)
+                    delay(1000)
                     decrementCurrentRoundTime()
                 }
                 playSound(R.raw.round_end)
                 while (_currentRestTime.value >= Duration.ZERO) {
                     _currentTimer.value = TimerType.REST
-                    if (_currentRoundTime.value == 11.seconds)
+                    if (_currentRoundTime.value == 10.seconds)
                         playSound(R.raw.ten_second_warning)
-                    if (_currentRestTime.value < 3.seconds)
+                    if (_currentPrepTime.value in 0.seconds..2.seconds)
                         playSound(R.raw.beep)
                     delay(1000)
                     decrementCurrentRestTime()
