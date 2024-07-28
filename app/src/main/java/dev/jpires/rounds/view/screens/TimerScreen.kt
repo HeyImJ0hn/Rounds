@@ -42,12 +42,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import dev.jpires.rounds.R
 import dev.jpires.rounds.model.data.TimerType
 import dev.jpires.rounds.viewmodel.ViewModel
 
 @Composable
 fun TimerScreen(viewModel: ViewModel, navController: NavController) {
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        viewModel.reset()
+        viewModel.startTimer { soundResId -> playSound(context, soundResId) }
+    }
+
     val isTimerFinished by viewModel.isTimerFinished.collectAsState()
 
     LaunchedEffect(isTimerFinished) {
@@ -151,21 +157,16 @@ fun CentralTimer(viewModel: ViewModel) {
     val currentRestTime by viewModel.currentRestTime.collectAsState()
     val currentTimer by viewModel.currentTimer.collectAsState()
 
-    val context = LocalContext.current
-
     Text(
         text = when (currentTimer) {
             TimerType.PREP -> viewModel.getFormattedCurrentPrepTime(currentPrepTime)
             TimerType.ROUND -> viewModel.getFormattedCurrentRoundTime(currentRoundTime)
             TimerType.REST -> viewModel.getFormattedCurrentRestTime(currentRestTime)
+            TimerType.FINISHED -> viewModel.getFormattedZero()
         },
         fontSize = 96.sp,
         fontWeight = FontWeight.Black
     )
-
-    LaunchedEffect(Unit) {
-        viewModel.startTimer { soundResId -> playSound(context, soundResId) }
-    }
 
 }
 
@@ -178,6 +179,7 @@ fun TotalTime(viewModel: ViewModel) {
             TimerType.PREP -> viewModel.getFormattedPrepTime()
             TimerType.ROUND -> viewModel.getFormattedRoundLength()
             TimerType.REST -> viewModel.getFormattedRestTime()
+            TimerType.FINISHED -> viewModel.getFormattedRoundLength()
         },
         fontSize = 24.sp,
         fontWeight = FontWeight.Normal,

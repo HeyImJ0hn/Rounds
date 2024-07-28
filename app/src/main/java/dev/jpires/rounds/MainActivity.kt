@@ -18,10 +18,11 @@ import dev.jpires.rounds.viewmodel.ViewModel
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel = ViewModel()
+    private lateinit var viewModel: ViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        viewModel = ViewModel(application.applicationContext)
 //        enableEdgeToEdge()
         setContent {
             RoundsTheme {

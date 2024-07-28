@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import dev.jpires.rounds.ui.theme.RoundsTheme
+import dev.jpires.rounds.view.composables.MainButton
 import dev.jpires.rounds.viewmodel.ViewModel
 
 @Composable
@@ -87,7 +88,10 @@ fun Screen(viewModel: ViewModel, navController: NavController) {
             onButtonPlusClick = { viewModel.incrementPrepTime() },
             onButtonMinusClick = { viewModel.decrementPrepTime() }
         )
-        StartButton(navController = navController)
+        Spacer(modifier = Modifier.height(48.dp))
+        MainButton("START") {
+            navController.navigate("timer_screen")
+        }
     }
 }
 
@@ -164,22 +168,6 @@ fun TopBar(viewModel: ViewModel) {
                 .height(8.dp)
                 .drawBottomShadow(4.dp)
         )
-    }
-}
-
-@Composable
-fun StartButton(navController: NavController) {
-    Button(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 48.dp, vertical = 24.dp),
-        onClick = { navController.navigate("timer_screen") },
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.tertiary,
-            contentColor = MaterialTheme.colorScheme.onBackground
-        )
-    ) {
-        Text(text = "START", fontSize = 18.sp, fontWeight = FontWeight.Bold)
     }
 }
 

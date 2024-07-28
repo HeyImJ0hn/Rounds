@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
+    alias(libs.plugins.google.devtools.ksp)
 }
 
 android {
@@ -67,7 +68,11 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    implementation("androidx.navigation:navigation-compose:2.7.7") // Navigation for Compose
-    implementation("androidx.compose.material:material:1.6.8") // Material library for bottom navigation
-    implementation("androidx.compose.material:material-icons-extended:1.6.8")
+    implementation(libs.androidx.navigation.navigation.compose) // Navigation for Compose
+    implementation(libs.androidx.material) // Material library for bottom navigation
+    implementation(libs.androidx.material.icons.extended)
+    implementation(libs.androidx.room.runtime)
+    annotationProcessor(libs.androidx.room.room.compiler3)
+    ksp(libs.androidx.room.room.compiler3)
+    implementation(libs.androidx.room.ktx)
 }

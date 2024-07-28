@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import dev.jpires.rounds.view.composables.MainButton
 import dev.jpires.rounds.view.navigation.BottomNavItem
 import dev.jpires.rounds.viewmodel.ViewModel
 
@@ -24,11 +25,11 @@ import dev.jpires.rounds.viewmodel.ViewModel
 fun FinishedScreen(viewModel: ViewModel, navController: NavController) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)
     ) {
         FinishedTop(viewModel, Modifier.weight(1f))
         FinishedCenter(viewModel, Modifier.weight(1f))
-        FinishedBottom(viewModel, Modifier.weight(1f), navController)
+        FinishedBottom(Modifier.weight(1f), navController)
     }
 }
 
@@ -91,7 +92,10 @@ fun FinishedCenterText(viewModel: ViewModel) {
 }
 
 @Composable
-fun FinishedBottom(viewModel: ViewModel, modifier: Modifier = Modifier, navController: NavController) {
+fun FinishedBottom(
+    modifier: Modifier = Modifier,
+    navController: NavController
+) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier.fillMaxSize()
@@ -99,28 +103,9 @@ fun FinishedBottom(viewModel: ViewModel, modifier: Modifier = Modifier, navContr
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            FinishedBottomButton(viewModel, navController)
-        }
-    }
-}
-
-@Composable
-fun FinishedBottomButton(viewModel: ViewModel, navController: NavController) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(16.dp)
-    ) {
-        Button(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 48.dp, vertical = 24.dp),
-            onClick = { navController.navigate(BottomNavItem.Home.route) },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.tertiary,
-                contentColor = MaterialTheme.colorScheme.onBackground
-            )
-        ) {
-            Text(text = "HOME", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            MainButton(text = "HOME") {
+                navController.navigate(BottomNavItem.Home.route)
+            }
         }
     }
 }
