@@ -16,7 +16,7 @@ import dev.jpires.rounds.viewmodel.ViewModel
 fun SetupNavHost(navController: NavHostController, modifier: Modifier = Modifier, viewModel: ViewModel) {
     NavHost(
         navController,
-        startDestination = BottomNavItem.Home.route,
+        startDestination = "timer_screen",
         modifier = modifier
     ) {
         composable(BottomNavItem.Home.route) { HomeScreen(viewModel, navController) }

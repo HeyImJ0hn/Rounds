@@ -46,6 +46,7 @@ class ViewModel(context: Context) : ViewModel(){
     val currentPrepTime = _currentPrepTime.asStateFlow()
 
     private var paused  = MutableStateFlow(false)
+    private var started = MutableStateFlow(false)
     private var timerJob: Job? = null
 
     private var _currentTimer = MutableStateFlow(TimerType.PREP)
@@ -76,6 +77,7 @@ class ViewModel(context: Context) : ViewModel(){
     }
 
     fun startTimer(playSound: (Int) -> Unit) {
+        started.value = true
         paused.value = false
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
@@ -124,10 +126,8 @@ class ViewModel(context: Context) : ViewModel(){
     }
 
     fun stopTimer() {
-//        _currentPrepTime.value = prepTime
-//        _currentRoundTime.value = roundLength
-//        _currentRestTime.value = restTime
         timerJob?.cancel()
+        reset()
     }
 
     fun skipTimer() {
@@ -140,6 +140,7 @@ class ViewModel(context: Context) : ViewModel(){
     }
 
     fun reset() {
+        started.value = false
         paused.value = false
         currentRound = 1
         _currentPrepTime.value = prepTime
@@ -179,6 +180,7 @@ class ViewModel(context: Context) : ViewModel(){
     }
 
     fun isPaused() = paused
+    fun hasStarted() = started
 
     private fun incrementCurrentRound() {
         currentRound++

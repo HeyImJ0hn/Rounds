@@ -58,24 +58,24 @@ fun HomeScreen(viewModel: ViewModel, navController: NavController) {
         Column(
         ) {
             TopBar(viewModel)
-            Screen(viewModel, navController)
+            Screen(viewModel)
         }
     }
 
 }
 
 @Composable
-fun Screen(viewModel: ViewModel, navController: NavController) {
+fun Screen(viewModel: ViewModel) {
     val windowSize = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass
 
     if (windowSize != WindowWidthSizeClass.EXPANDED)
-        PortraitHomeScreen(viewModel, navController)
+        PortraitHomeScreen(viewModel)
     else
-        LandscapeHomeScreen(viewModel, navController)
+        LandscapeHomeScreen(viewModel)
 }
 
 @Composable
-fun PortraitHomeScreen(viewModel: ViewModel, navController: NavController) {
+fun PortraitHomeScreen(viewModel: ViewModel) {
     Column(
         modifier = Modifier.padding(horizontal = 16.dp)
     ) {
@@ -104,14 +104,11 @@ fun PortraitHomeScreen(viewModel: ViewModel, navController: NavController) {
             onButtonMinusClick = { viewModel.decrementPrepTime() }
         )
         Spacer(modifier = Modifier.height(48.dp))
-        MainButton("START") {
-            navController.navigate("timer_screen")
-        }
     }
 }
 
 @Composable
-fun LandscapeHomeScreen(viewModel: ViewModel, navController: NavController) {
+fun LandscapeHomeScreen(viewModel: ViewModel) {
     Row(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -150,9 +147,6 @@ fun LandscapeHomeScreen(viewModel: ViewModel, navController: NavController) {
             modifier = Modifier.weight(1f).fillMaxHeight()
         ) {
             items(1) {
-                MainButton("START") {
-                    navController.navigate("timer_screen")
-                }
             }
         }
     }
