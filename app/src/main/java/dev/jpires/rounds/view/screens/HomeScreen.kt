@@ -222,7 +222,8 @@ fun TopBar(viewModel: ViewModel) {
         ) {
             Text(
                 text = "Training Length: ${viewModel.getFormattedTotalTime()}",
-                fontSize = 14.sp
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
             )
         }
         Box(

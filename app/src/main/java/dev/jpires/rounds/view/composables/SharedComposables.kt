@@ -19,13 +19,13 @@ fun MainButton(text: String, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp)
-            .padding(horizontal = 32.dp),
+            .padding(horizontal = 56.dp),
         onClick = { onClick() },
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.tertiary,
             contentColor = MaterialTheme.colorScheme.onBackground
         )
     ) {
-        Text(text = text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text(text = text, fontSize = 24.sp, fontWeight = FontWeight.Black)
     }
 }
