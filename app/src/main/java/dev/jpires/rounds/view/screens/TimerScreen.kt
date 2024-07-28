@@ -26,6 +26,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -42,8 +43,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.window.core.layout.WindowHeightSizeClass
+import androidx.window.core.layout.WindowWidthSizeClass
 import dev.jpires.rounds.model.data.TimerType
 import dev.jpires.rounds.viewmodel.ViewModel
+import java.util.logging.Logger
 
 @Composable
 fun TimerScreen(viewModel: ViewModel, navController: NavController) {
@@ -62,14 +66,33 @@ fun TimerScreen(viewModel: ViewModel, navController: NavController) {
         }
     }
 
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        TimerTop(viewModel, Modifier.weight(1f))
-        TimerCenter(viewModel, Modifier.weight(1f))
-        TimerBottom(viewModel, Modifier.weight(1f), navController)
-    }
+    val windowSize = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass
+
+    if (windowSize != WindowWidthSizeClass.EXPANDED)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            TimerTop(viewModel, Modifier.weight(1f))
+            TimerCenter(viewModel, Modifier.weight(1f))
+            TimerBottom(viewModel, Modifier.weight(1f), navController)
+        }
+    else
+        Row(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                TimerCenter(viewModel, Modifier.weight(1f))
+            }
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                TimerTop(viewModel, Modifier.weight(1f))
+                TimerBottom(viewModel, Modifier.weight(1f), navController)
+            }
+        }
 }
 
 fun playSound(context: Context, soundResId: Int) {
@@ -134,12 +157,12 @@ fun SkipRoundButton(viewModel: ViewModel) {
 }
 
 @Composable
-fun TimerTopTextRoundType(viewModel: ViewModel) {
+fun TimerTopTextRoundType(viewModel: ViewModel, modifier: Modifier = Modifier) {
     val currentTimer by viewModel.currentTimer.collectAsState()
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(16.dp)
+        modifier = modifier.padding(16.dp)
     ) {
         Text(
             text = currentTimer.toString(),
@@ -167,7 +190,6 @@ fun CentralTimer(viewModel: ViewModel) {
         fontSize = 96.sp,
         fontWeight = FontWeight.Black
     )
-
 }
 
 @Composable
@@ -205,10 +227,14 @@ fun TimerMiddleLine() {
 
 @Composable
 fun TimerCenter(viewModel: ViewModel, modifier: Modifier = Modifier) {
+    val windowSize = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier.fillMaxSize()
     ) {
+        if (windowSize == WindowWidthSizeClass.EXPANDED)
+            TimerTopTextRoundType(viewModel, Modifier.align(Alignment.TopCenter))
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth()
@@ -222,6 +248,8 @@ fun TimerCenter(viewModel: ViewModel, modifier: Modifier = Modifier) {
 
 @Composable
 fun TimerBottom(viewModel: ViewModel, modifier: Modifier = Modifier, navController: NavController) {
+    val paused by viewModel.isPaused().collectAsState()
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier.fillMaxSize()
@@ -230,7 +258,7 @@ fun TimerBottom(viewModel: ViewModel, modifier: Modifier = Modifier, navControll
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth()
         ) {
-            if (viewModel.isPaused())
+            if (paused)
                 PausedButtons(viewModel, navController)
             else
                 Pause(viewModel)

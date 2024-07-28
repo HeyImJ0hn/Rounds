@@ -2,15 +2,18 @@ package dev.jpires.rounds.view.screens
 
 import android.content.res.Resources.Theme
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -23,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +47,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.window.core.layout.WindowWidthSizeClass
 import dev.jpires.rounds.ui.theme.RoundsTheme
 import dev.jpires.rounds.view.composables.MainButton
 import dev.jpires.rounds.viewmodel.ViewModel
@@ -61,6 +66,16 @@ fun HomeScreen(viewModel: ViewModel, navController: NavController) {
 
 @Composable
 fun Screen(viewModel: ViewModel, navController: NavController) {
+    val windowSize = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass
+
+    if (windowSize != WindowWidthSizeClass.EXPANDED)
+        PortraitHomeScreen(viewModel, navController)
+    else
+        LandscapeHomeScreen(viewModel, navController)
+}
+
+@Composable
+fun PortraitHomeScreen(viewModel: ViewModel, navController: NavController) {
     Column(
         modifier = Modifier.padding(horizontal = 16.dp)
     ) {
@@ -91,6 +106,54 @@ fun Screen(viewModel: ViewModel, navController: NavController) {
         Spacer(modifier = Modifier.height(48.dp))
         MainButton("START") {
             navController.navigate("timer_screen")
+        }
+    }
+}
+
+@Composable
+fun LandscapeHomeScreen(viewModel: ViewModel, navController: NavController) {
+    Row(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        LazyColumn(
+            modifier = Modifier.padding(horizontal = 16.dp).weight(1f)
+        ) {
+            items(1) {
+                ScreenRow(
+                    textTop = viewModel.getFormattedRoundLength(),
+                    textBottom = "Round Length",
+                    onButtonPlusClick = { viewModel.incrementRoundLength() },
+                    onButtonMinusClick = { viewModel.decrementRoundLength() }
+                )
+                ScreenRow(
+                    textTop = viewModel.getFormattedRestTime(),
+                    textBottom = "Rest Time",
+                    onButtonPlusClick = { viewModel.incrementRestTime() },
+                    onButtonMinusClick = { viewModel.decrementRestTime() }
+                )
+                ScreenRow(
+                    textTop = viewModel.getFormattedRounds(),
+                    textBottom = "Rounds",
+                    onButtonPlusClick = { viewModel.incrementRounds() },
+                    onButtonMinusClick = { viewModel.decrementRounds() }
+                )
+                ScreenRow(
+                    textTop = viewModel.getFormattedPrepTime(),
+                    textBottom = "Prep Time",
+                    onButtonPlusClick = { viewModel.incrementPrepTime() },
+                    onButtonMinusClick = { viewModel.decrementPrepTime() }
+                )
+            }
+        }
+        LazyColumn(
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.weight(1f).fillMaxHeight()
+        ) {
+            items(1) {
+                MainButton("START") {
+                    navController.navigate("timer_screen")
+                }
+            }
         }
     }
 }

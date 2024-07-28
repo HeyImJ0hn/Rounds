@@ -75,4 +75,5 @@ dependencies {
     annotationProcessor(libs.androidx.room.room.compiler3)
     ksp(libs.androidx.room.room.compiler3)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.adaptive)
 }
