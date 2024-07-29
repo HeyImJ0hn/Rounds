@@ -148,7 +148,7 @@ class ViewModel(context: Context) : ViewModel(){
 
     fun stopTimer() {
         timerJob?.cancel()
-//        reset()
+        reset()
     }
 
     fun skipTimer() {
