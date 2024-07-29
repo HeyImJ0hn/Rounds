@@ -28,6 +28,7 @@ class ViewModel(context: Context) : ViewModel(){
     private val repository = Repository(context)
 
     private lateinit var activePreset: Preset
+    private lateinit var allPresets: List<Preset>
 
     private var roundLength: Duration by mutableStateOf(Duration.ZERO)
     private var restTime: Duration by mutableStateOf(Duration.ZERO)
@@ -73,6 +74,8 @@ class ViewModel(context: Context) : ViewModel(){
             _currentRoundTime.value = roundLength
             _currentRestTime.value = restTime
             _currentPrepTime.value = prepTime
+
+            allPresets = repository.getAllPresets().map { it.toDomainModel() }
         }
     }
 
@@ -127,7 +130,7 @@ class ViewModel(context: Context) : ViewModel(){
 
     fun stopTimer() {
         timerJob?.cancel()
-        reset()
+//        reset()
     }
 
     fun skipTimer() {
@@ -273,6 +276,12 @@ class ViewModel(context: Context) : ViewModel(){
             repository.updatePreset(activePreset.toEntityModel())
         }
     }
+
+    fun getActivePresetName() = activePreset.name
+
+    fun getAllPresets(): List<Preset> = allPresets
+
+    fun getActivePreset(): Preset = activePreset
 
     fun getFormattedZero() = formatDuration(Duration.ZERO)
 

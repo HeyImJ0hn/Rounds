@@ -2,6 +2,7 @@ package dev.jpires.rounds.view.screens
 
 import android.content.res.Resources.Theme
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,23 +12,42 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.MenuItemColors
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +65,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.window.core.layout.WindowWidthSizeClass
@@ -76,9 +97,102 @@ fun Screen(viewModel: ViewModel) {
 
 @Composable
 fun PortraitHomeScreen(viewModel: ViewModel) {
+    var text by remember { mutableStateOf(viewModel.getActivePresetName()) }
+
+    var showMenuDropdown by rememberSaveable { mutableStateOf(false) }
+    var selectedItem by rememberSaveable { mutableStateOf(viewModel.getActivePresetName()) }
+
+    var editEnabled by rememberSaveable { mutableStateOf(false) }
+
     Column(
-        modifier = Modifier.padding(horizontal = 16.dp)
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                label = { Text("Preset") },
+                modifier = Modifier
+                    .clickable { showMenuDropdown = true }
+                    .weight(1f),
+                singleLine = true,
+                enabled = editEnabled
+            )
+            DropdownMenu(
+                expanded = showMenuDropdown,
+                onDismissRequest = {
+                    showMenuDropdown = false
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .background(MaterialTheme.colorScheme.background),
+            ) {
+                for (preset in viewModel.getAllPresets()) {
+                    DropdownMenuItem(
+                        text = { Text(preset.name) },
+                        onClick = { showMenuDropdown = false },
+                        colors = MenuDefaults.itemColors(
+                            textColor = MaterialTheme.colorScheme.onBackground
+                        ),
+                        modifier = Modifier
+                            .clip(RectangleShape)
+                            .background(MaterialTheme.colorScheme.background)
+                            .padding(horizontal = 16.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            if (editEnabled)
+                IconButton(onClick = { editEnabled = false }) {
+                    Icon(
+                        imageVector = Icons.Rounded.Save,
+                        contentDescription = "Save",
+                        tint = Color.Red,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .weight(1f)
+                    )
+                }
+            else
+                IconButton(onClick = { editEnabled = true }) {
+                    Icon(
+                        imageVector = Icons.Rounded.Edit,
+                        contentDescription = "Edit",
+                        tint = Color.Red,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .weight(1f)
+                    )
+                }
+            Spacer(modifier = Modifier.width(16.dp))
+            IconButton(onClick = { /*TODO*/ }) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.PlaylistAdd,
+                    contentDescription = "Add",
+                    tint = Color.Red,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .weight(1f)
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            IconButton(onClick = { /*TODO*/ }) {
+                Icon(
+                    imageVector = Icons.Rounded.Delete,
+                    contentDescription = "Delete",
+                    tint = Color.Red,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .weight(1f)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Divider()
         ScreenRow(
             textTop = viewModel.getFormattedRoundLength(),
             textBottom = "Round Length",
@@ -113,7 +227,9 @@ fun LandscapeHomeScreen(viewModel: ViewModel) {
         modifier = Modifier.fillMaxSize()
     ) {
         LazyColumn(
-            modifier = Modifier.padding(horizontal = 16.dp).weight(1f)
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .weight(1f)
         ) {
             items(1) {
                 ScreenRow(
@@ -144,7 +260,9 @@ fun LandscapeHomeScreen(viewModel: ViewModel) {
         }
         LazyColumn(
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.weight(1f).fillMaxHeight()
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
         ) {
             items(1) {
             }

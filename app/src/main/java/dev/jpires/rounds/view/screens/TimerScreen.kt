@@ -8,9 +8,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,12 +37,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,7 +55,6 @@ import androidx.navigation.NavController
 import androidx.window.core.layout.WindowWidthSizeClass
 import dev.jpires.rounds.model.data.TimerType
 import dev.jpires.rounds.viewmodel.ViewModel
-import kotlinx.coroutines.launch
 
 @Composable
 fun TimerScreen(viewModel: ViewModel, navController: NavController) {
@@ -157,12 +159,20 @@ fun TimerTopTextRoundType(viewModel: ViewModel, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.padding(16.dp)
     ) {
-        Text(
-            text = currentTimer.toString(),
-            color = MaterialTheme.colorScheme.tertiary,
-            fontWeight = FontWeight.Black,
-            fontSize = 32.sp
-        )
+        if (currentTimer != TimerType.FINISHED)
+            Text(
+                text = currentTimer.toString(),
+                color = MaterialTheme.colorScheme.tertiary,
+                fontWeight = FontWeight.Black,
+                fontSize = 24.sp
+            )
+        else
+            Text(
+                text = "Total Time: ${viewModel.getFormattedTotalTime()}",
+                color = MaterialTheme.colorScheme.tertiary,
+                fontWeight = FontWeight.Black,
+                fontSize = 24.sp
+            )
     }
 }
 
@@ -178,7 +188,7 @@ fun CentralTimer(viewModel: ViewModel) {
             TimerType.PREP -> viewModel.getFormattedCurrentPrepTime(currentPrepTime)
             TimerType.ROUND -> viewModel.getFormattedCurrentRoundTime(currentRoundTime)
             TimerType.REST -> viewModel.getFormattedCurrentRestTime(currentRestTime)
-            TimerType.FINISHED -> viewModel.getFormattedZero()
+            TimerType.FINISHED -> "DONE"
         },
         fontSize = 96.sp,
         fontWeight = FontWeight.Black
@@ -398,8 +408,8 @@ fun PauseButton(viewModel: ViewModel) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsButton(viewModel: ViewModel) {
-    val sheetState = rememberModalBottomSheetState()
-    var showBottomSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var showBottomSheet by rememberSaveable { mutableStateOf(false) }
 
     IconButton(
         onClick = {
@@ -420,7 +430,9 @@ fun SettingsButton(viewModel: ViewModel) {
             onDismissRequest = {
                 showBottomSheet = false
             },
-            sheetState = sheetState
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.background,
+            tonalElevation = 16.dp
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth()
