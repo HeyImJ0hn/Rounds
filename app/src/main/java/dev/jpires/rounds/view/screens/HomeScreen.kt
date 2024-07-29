@@ -1,6 +1,5 @@
 package dev.jpires.rounds.view.screens
 
-import android.content.res.Resources.Theme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,22 +11,19 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Save
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
@@ -37,12 +33,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.MenuItemColors
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,28 +46,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.window.core.layout.WindowWidthSizeClass
 import dev.jpires.rounds.ui.theme.RoundsTheme
-import dev.jpires.rounds.view.composables.MainButton
 import dev.jpires.rounds.viewmodel.ViewModel
+import java.util.logging.Logger
 
 @Composable
 fun HomeScreen(viewModel: ViewModel, navController: NavController) {
@@ -97,12 +83,17 @@ fun Screen(viewModel: ViewModel) {
 
 @Composable
 fun PortraitHomeScreen(viewModel: ViewModel) {
-    var text by remember { mutableStateOf(viewModel.getActivePresetName()) }
+    val presets by viewModel.allPresets.collectAsState()
+    val activePreset by viewModel.activePreset.collectAsState()
 
     var showMenuDropdown by rememberSaveable { mutableStateOf(false) }
-    var selectedItem by rememberSaveable { mutableStateOf(viewModel.getActivePresetName()) }
-
     var editEnabled by rememberSaveable { mutableStateOf(false) }
+    var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
+    var text by rememberSaveable { mutableStateOf(activePreset?.name ?: "") }
+
+    LaunchedEffect(activePreset) {
+        text = activePreset?.name ?: ""
+    }
 
     Column(
         modifier = Modifier
@@ -113,7 +104,7 @@ fun PortraitHomeScreen(viewModel: ViewModel) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedTextField(
-                value = text,
+                value = if (editEnabled) text else activePreset!!.name,
                 onValueChange = { text = it },
                 label = { Text("Preset") },
                 modifier = Modifier
@@ -131,15 +122,19 @@ fun PortraitHomeScreen(viewModel: ViewModel) {
                     .weight(1f)
                     .background(MaterialTheme.colorScheme.background),
             ) {
-                for (preset in viewModel.getAllPresets()) {
+                for (preset in presets) {
+                    if (preset.id == activePreset!!.id)
+                        continue
                     DropdownMenuItem(
                         text = { Text(preset.name) },
-                        onClick = { showMenuDropdown = false },
+                        onClick = {
+                            showMenuDropdown = false
+                            viewModel.setActivePreset(preset)
+                        },
                         colors = MenuDefaults.itemColors(
                             textColor = MaterialTheme.colorScheme.onBackground
                         ),
                         modifier = Modifier
-                            .clip(RectangleShape)
                             .background(MaterialTheme.colorScheme.background)
                             .padding(horizontal = 16.dp)
                     )
@@ -147,7 +142,11 @@ fun PortraitHomeScreen(viewModel: ViewModel) {
             }
             Spacer(modifier = Modifier.width(16.dp))
             if (editEnabled)
-                IconButton(onClick = { editEnabled = false }) {
+                IconButton(onClick = {
+                    showMenuDropdown = false
+                    editEnabled = false
+                    viewModel.updatePresetName(activePreset!!, text)
+                }) {
                     Icon(
                         imageVector = Icons.Rounded.Save,
                         contentDescription = "Save",
@@ -158,7 +157,10 @@ fun PortraitHomeScreen(viewModel: ViewModel) {
                     )
                 }
             else
-                IconButton(onClick = { editEnabled = true }) {
+                IconButton(onClick = {
+                    showMenuDropdown = false
+                    editEnabled = true
+                }) {
                     Icon(
                         imageVector = Icons.Rounded.Edit,
                         contentDescription = "Edit",
@@ -169,10 +171,13 @@ fun PortraitHomeScreen(viewModel: ViewModel) {
                     )
                 }
             Spacer(modifier = Modifier.width(16.dp))
-            IconButton(onClick = { /*TODO*/ }) {
+            IconButton(onClick = {
+                showMenuDropdown = false
+                viewModel.duplicatePreset(activePreset!!)
+            }) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.PlaylistAdd,
-                    contentDescription = "Add",
+                    contentDescription = "Duplicate",
                     tint = Color.Red,
                     modifier = Modifier
                         .size(48.dp)
@@ -180,9 +185,12 @@ fun PortraitHomeScreen(viewModel: ViewModel) {
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))
-            IconButton(onClick = { /*TODO*/ }) {
+            IconButton(onClick = {
+                showMenuDropdown = false
+                showDeleteDialog = true
+            }) {
                 Icon(
-                    imageVector = Icons.Rounded.Delete,
+                    imageVector = Icons.Rounded.DeleteForever,
                     contentDescription = "Delete",
                     tint = Color.Red,
                     modifier = Modifier
@@ -218,6 +226,46 @@ fun PortraitHomeScreen(viewModel: ViewModel) {
             onButtonMinusClick = { viewModel.decrementPrepTime() }
         )
         Spacer(modifier = Modifier.height(48.dp))
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            text = {
+                Text(
+                    text = "Are you sure you want to delete this preset?",
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            },
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.DeleteForever,
+                    contentDescription = "Delete",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showDeleteDialog = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent,
+                    )
+                ) {
+                    Text("No", color = MaterialTheme.colorScheme.onBackground)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteDialog = false
+                        viewModel.deletePreset(activePreset!!)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+                ) {
+                    Text("Yes", color = MaterialTheme.colorScheme.onBackground)
+                }
+            }
+        )
     }
 }
 

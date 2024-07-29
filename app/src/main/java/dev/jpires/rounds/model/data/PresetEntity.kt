@@ -26,4 +26,9 @@ data class PresetEntity(
             prepTime = this.prepTime.seconds
         )
     }
+
+    @Ignore
+    override fun toString(): String {
+        return "PresetEntity(id=$id, name='$name', rounds=$rounds, roundLength=$roundLength, restTime=$restTime, prepTime=$prepTime)"
+    }
 }

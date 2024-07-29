@@ -3,12 +3,15 @@ package dev.jpires.rounds.viewmodel
 import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.jpires.rounds.R
 import dev.jpires.rounds.model.data.Preset
+import dev.jpires.rounds.model.data.PresetEntity
 import dev.jpires.rounds.model.data.TimerType
 import dev.jpires.rounds.model.repository.Repository
 import kotlinx.coroutines.CoroutineScope
@@ -18,8 +21,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
-import kotlin.math.abs
+import java.util.logging.Logger
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
@@ -27,8 +31,14 @@ import kotlin.time.DurationUnit
 class ViewModel(context: Context) : ViewModel(){
     private val repository = Repository(context)
 
-    private lateinit var activePreset: Preset
-    private lateinit var allPresets: List<Preset>
+    private var _isReady = MutableStateFlow(false)
+    val isReady = _isReady.asStateFlow()
+
+    private var _activePreset = MutableStateFlow<Preset?>(null)
+    val activePreset = _activePreset.asStateFlow()
+
+    private var _allPresets = MutableStateFlow<MutableList<Preset>>(mutableListOf())
+    val allPresets = _allPresets.asStateFlow()
 
     private var roundLength: Duration by mutableStateOf(Duration.ZERO)
     private var restTime: Duration by mutableStateOf(Duration.ZERO)
@@ -57,25 +67,33 @@ class ViewModel(context: Context) : ViewModel(){
     val isTimerFinished = _isTimerFinished.asStateFlow()
 
     init {
-        viewModelScope.launch(Dispatchers.IO) {
-            activePreset = repository.getPresetByName("Default")?.toDomainModel() ?: Preset(
-                name = "Default",
-                rounds = 5,
-                roundLength = 120.seconds,
-                restTime = 60.seconds,
-                prepTime = 15.seconds
-            )
+        viewModelScope.launch {
+            Logger.getGlobal().info("ViewModel init")
+            initializeRepository()
+            loadUI()
+            _isReady.value = true
+        }
+    }
 
-            roundLength = activePreset.roundLength
-            restTime = activePreset.restTime
-            prepTime = activePreset.prepTime
-            rounds = activePreset.rounds
+    private suspend fun initializeRepository() {
+        withContext(Dispatchers.IO) {
+            repository.initDatabase()
+            _allPresets.value = repository.getAllPresets().map { it.toDomainModel() }.toMutableList()
+        }
+    }
+
+    suspend fun loadUI() {
+        withContext(Dispatchers.Main) {
+            _activePreset.value = _allPresets.value.first()
+
+            roundLength = activePreset.value!!.roundLength
+            restTime = activePreset.value!!.restTime
+            prepTime = activePreset.value!!.prepTime
+            rounds = activePreset.value!!.rounds
 
             _currentRoundTime.value = roundLength
             _currentRestTime.value = restTime
             _currentPrepTime.value = prepTime
-
-            allPresets = repository.getAllPresets().map { it.toDomainModel() }
         }
     }
 
@@ -267,21 +285,79 @@ class ViewModel(context: Context) : ViewModel(){
     }
 
     private fun updateCurrentPreset() {
-        activePreset.rounds = rounds
-        activePreset.roundLength = roundLength
-        activePreset.restTime = restTime
-        activePreset.prepTime = prepTime
+        activePreset.value!!.rounds = rounds
+        activePreset.value!!.roundLength = roundLength
+        activePreset.value!!.restTime = restTime
+        activePreset.value!!.prepTime = prepTime
 
         CoroutineScope(Dispatchers.IO).launch {
-            repository.updatePreset(activePreset.toEntityModel())
+            repository.updatePreset(activePreset.value!!.toEntityModel())
         }
     }
 
-    fun getActivePresetName() = activePreset.name
+    fun getActivePresetName() = activePreset.value!!.name
 
-    fun getAllPresets(): List<Preset> = allPresets
+    fun setActivePreset(preset: Preset) {
+        _activePreset.value = preset
 
-    fun getActivePreset(): Preset = activePreset
+        roundLength = activePreset.value!!.roundLength
+        restTime = activePreset.value!!.restTime
+        prepTime = activePreset.value!!.prepTime
+        rounds = activePreset.value!!.rounds
+
+        _currentRoundTime.value = roundLength
+        _currentRestTime.value = restTime
+        _currentPrepTime.value = prepTime
+    }
+
+    fun duplicateActivePreset() {
+        duplicatePreset(activePreset.value!!)
+    }
+
+    fun duplicatePreset(preset: Preset) {
+        val currentPreset = preset.toEntityModel()
+        val newPreset = PresetEntity(
+            name = "${preset.name} (Copy)",
+            rounds = preset.rounds,
+            roundLength = currentPreset.roundLength,
+            restTime = currentPreset.restTime,
+            prepTime = currentPreset.prepTime
+        )
+
+        CoroutineScope(Dispatchers.IO).launch {
+            repository.addPreset(newPreset)
+            _allPresets.value = repository.getAllPresets().map { it.toDomainModel() }.toMutableList()
+
+            val insertedPreset = repository.getPresetByName("${preset.name} (Copy)")
+            setActivePreset(insertedPreset!!.toDomainModel())
+        }
+    }
+
+    fun deleteActivePreset() {
+        deletePreset(activePreset.value!!)
+    }
+
+    fun deletePreset(preset: Preset) {
+        _allPresets.value.remove(preset)
+        setActivePreset(_allPresets.value[0])
+
+        val toDelete = preset.toEntityModel()
+        CoroutineScope(Dispatchers.IO).launch {
+            repository.deletePreset(toDelete)
+            _allPresets.value = repository.getAllPresets().map { it.toDomainModel() }.toMutableList()
+        }
+    }
+
+    fun updateActivePresetName(name: String) {
+        updatePresetName(activePreset.value!!, name)
+    }
+
+    fun updatePresetName(preset: Preset, name: String) {
+        preset.name = name
+        CoroutineScope(Dispatchers.IO).launch {
+            repository.updatePreset(preset.toEntityModel())
+        }
+    }
 
     fun getFormattedZero() = formatDuration(Duration.ZERO)
 

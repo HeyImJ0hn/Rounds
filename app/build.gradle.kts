@@ -76,4 +76,5 @@ dependencies {
     ksp(libs.androidx.room.room.compiler3)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.adaptive)
+    implementation(libs.androidx.core.splashscreen)
 }

@@ -21,4 +21,8 @@ data class Preset(
         )
     }
 
+    override fun toString(): String {
+        return "Preset(id=$id, name='$name', rounds=$rounds, roundLength=${roundLength.inWholeSeconds}, restTime=${restTime.inWholeSeconds}, prepTime=${prepTime.inWholeSeconds})"
+    }
+
 }
