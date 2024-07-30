@@ -8,13 +8,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -57,7 +53,7 @@ import dev.jpires.rounds.model.data.TimerType
 import dev.jpires.rounds.viewmodel.ViewModel
 
 @Composable
-fun TimerScreen(viewModel: ViewModel, navController: NavController) {
+fun TimerScreen(viewModel: ViewModel) {
     val windowSize = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass
 
     if (windowSize != WindowWidthSizeClass.EXPANDED)
@@ -67,7 +63,7 @@ fun TimerScreen(viewModel: ViewModel, navController: NavController) {
         ) {
             TimerTop(viewModel, Modifier.weight(1f))
             TimerCenter(viewModel, Modifier.weight(1f))
-            TimerBottom(viewModel, Modifier.weight(1f), navController)
+            TimerBottom(viewModel, Modifier.weight(1f))
         }
     else
         Row(
@@ -82,7 +78,7 @@ fun TimerScreen(viewModel: ViewModel, navController: NavController) {
                 modifier = Modifier.weight(1f)
             ) {
                 TimerTop(viewModel, Modifier.weight(1f))
-                TimerBottom(viewModel, Modifier.weight(1f), navController)
+                TimerBottom(viewModel, Modifier.weight(1f))
             }
         }
 }
@@ -248,7 +244,7 @@ fun TimerCenter(viewModel: ViewModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun TimerBottom(viewModel: ViewModel, modifier: Modifier = Modifier, navController: NavController) {
+fun TimerBottom(viewModel: ViewModel, modifier: Modifier = Modifier) {
     val paused by viewModel.isPaused().collectAsState()
     val started by viewModel.hasStarted().collectAsState()
     val isTimerFinished by viewModel.isTimerFinished.collectAsState()
@@ -262,9 +258,9 @@ fun TimerBottom(viewModel: ViewModel, modifier: Modifier = Modifier, navControll
             modifier = Modifier.fillMaxWidth()
         ) {
             when {
-                !started -> IdleButtonGroup(viewModel, navController)
+                !started -> IdleButtonGroup(viewModel)
                 isTimerFinished -> RestartButton(viewModel)
-                paused -> PausedButtonGroup(viewModel, navController)
+                paused -> PausedButtonGroup(viewModel)
                 else -> PauseButtonGroup(viewModel)
             }
         }
@@ -282,8 +278,7 @@ fun PauseButtonGroup(viewModel: ViewModel) {
 }
 
 @Composable
-fun IdleButtonGroup(viewModel: ViewModel, navController: NavController) {
-    var showDialog by remember { mutableStateOf(false) }
+fun IdleButtonGroup(viewModel: ViewModel) {
     val context = LocalContext.current
 
     Row(
@@ -296,8 +291,7 @@ fun IdleButtonGroup(viewModel: ViewModel, navController: NavController) {
 }
 
 @Composable
-fun PausedButtonGroup(viewModel: ViewModel, navController: NavController) {
-    var showDialog by remember { mutableStateOf(false) }
+fun PausedButtonGroup(viewModel: ViewModel) {
     val context = LocalContext.current
 
     Row(
@@ -305,7 +299,7 @@ fun PausedButtonGroup(viewModel: ViewModel, navController: NavController) {
     ) {
         ResumeButton(viewModel, context)
         Spacer(modifier = Modifier.width(48.dp))
-        StopButton(viewModel, navController)
+        StopButton(viewModel)
     }
 }
 
@@ -325,7 +319,7 @@ fun ResumeButton(viewModel: ViewModel, context: Context) {
 }
 
 @Composable
-fun StopButton(viewModel: ViewModel, navController: NavController) {
+fun StopButton(viewModel: ViewModel) {
     var showDialog by remember { mutableStateOf(false) }
 
     IconButton(
@@ -363,7 +357,6 @@ fun StopButton(viewModel: ViewModel, navController: NavController) {
                 Button(
                     onClick = {
                         showDialog = false
-//                        navController.navigate("home")
                         viewModel.stopTimer()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
@@ -431,7 +424,6 @@ fun SettingsButton(viewModel: ViewModel) {
                 showBottomSheet = false
             },
             sheetState = sheetState,
-            containerColor = MaterialTheme.colorScheme.background,
             tonalElevation = 16.dp
         ) {
             Column(

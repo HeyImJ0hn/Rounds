@@ -17,9 +17,11 @@ import dev.jpires.rounds.model.repository.Repository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
@@ -71,6 +73,7 @@ class ViewModel(context: Context) : ViewModel(){
             Logger.getGlobal().info("ViewModel init")
             initializeRepository()
             loadUI()
+            Logger.getGlobal().info("Loaded UI")
             _isReady.value = true
         }
     }
@@ -82,18 +85,26 @@ class ViewModel(context: Context) : ViewModel(){
         }
     }
 
-    suspend fun loadUI() {
-        withContext(Dispatchers.Main) {
-            _activePreset.value = _allPresets.value.first()
+    private suspend fun loadUI() {
+        viewModelScope.launch {
+            repository.activePresetId.collect { id ->
+                _activePreset.value = _allPresets.value.find { it.id == id }
 
-            roundLength = activePreset.value!!.roundLength
-            restTime = activePreset.value!!.restTime
-            prepTime = activePreset.value!!.prepTime
-            rounds = activePreset.value!!.rounds
+                _activePreset.value?.let { preset ->
+                    roundLength = preset.roundLength
+                    restTime = preset.restTime
+                    prepTime = preset.prepTime
+                    rounds = preset.rounds
 
-            _currentRoundTime.value = roundLength
-            _currentRestTime.value = restTime
-            _currentPrepTime.value = prepTime
+                    _currentRoundTime.value = roundLength
+                    _currentRestTime.value = restTime
+                    _currentPrepTime.value = prepTime
+                }
+
+                if (_activePreset.value != null) {
+                    cancel()
+                }
+            }
         }
     }
 
@@ -285,10 +296,14 @@ class ViewModel(context: Context) : ViewModel(){
     }
 
     private fun updateCurrentPreset() {
+        val index = _allPresets.value.indexOfFirst { it.id == activePreset.value!!.id }
+
         activePreset.value!!.rounds = rounds
         activePreset.value!!.roundLength = roundLength
         activePreset.value!!.restTime = restTime
         activePreset.value!!.prepTime = prepTime
+
+        _allPresets.value[index] = activePreset.value!!
 
         CoroutineScope(Dispatchers.IO).launch {
             repository.updatePreset(activePreset.value!!.toEntityModel())
@@ -308,6 +323,10 @@ class ViewModel(context: Context) : ViewModel(){
         _currentRoundTime.value = roundLength
         _currentRestTime.value = restTime
         _currentPrepTime.value = prepTime
+
+        CoroutineScope(Dispatchers.IO).launch {
+            repository.saveActivePreset(preset.id)
+        }
     }
 
     fun duplicateActivePreset() {
@@ -338,11 +357,12 @@ class ViewModel(context: Context) : ViewModel(){
     }
 
     fun deletePreset(preset: Preset) {
-        _allPresets.value.remove(preset)
-        setActivePreset(_allPresets.value[0])
-
-        val toDelete = preset.toEntityModel()
         CoroutineScope(Dispatchers.IO).launch {
+            _allPresets.value.remove(preset)
+            setActivePreset(_allPresets.value[0])
+
+            val toDelete = preset.toEntityModel()
+
             repository.deletePreset(toDelete)
             _allPresets.value = repository.getAllPresets().map { it.toDomainModel() }.toMutableList()
         }
@@ -354,6 +374,7 @@ class ViewModel(context: Context) : ViewModel(){
 
     fun updatePresetName(preset: Preset, name: String) {
         preset.name = name
+        _allPresets.value.find { it.id == preset.id }?.name = name
         CoroutineScope(Dispatchers.IO).launch {
             repository.updatePreset(preset.toEntityModel())
         }

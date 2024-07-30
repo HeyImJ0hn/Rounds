@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Remove
@@ -41,7 +40,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -53,36 +51,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import androidx.window.core.layout.WindowWidthSizeClass
-import dev.jpires.rounds.ui.theme.RoundsTheme
 import dev.jpires.rounds.viewmodel.ViewModel
-import java.util.logging.Logger
-
-@Composable
-fun HomeScreen(viewModel: ViewModel, navController: NavController) {
-    RoundsTheme {
-        Column(
-        ) {
-            TopBar(viewModel)
-            Screen(viewModel)
-        }
-    }
-
-}
 
 @Composable
 fun Screen(viewModel: ViewModel) {
     val windowSize = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass
 
     if (windowSize != WindowWidthSizeClass.EXPANDED)
-        PortraitHomeScreen(viewModel)
+        PortraitSheetScreen(viewModel)
     else
-        LandscapeHomeScreen(viewModel)
+        LandscapeSheetScreen(viewModel)
 }
 
 @Composable
-fun PortraitHomeScreen(viewModel: ViewModel) {
+fun PortraitSheetScreen(viewModel: ViewModel) {
     val presets by viewModel.allPresets.collectAsState()
     val activePreset by viewModel.activePreset.collectAsState()
 
@@ -120,7 +103,7 @@ fun PortraitHomeScreen(viewModel: ViewModel) {
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .background(MaterialTheme.colorScheme.background),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
             ) {
                 for (preset in presets) {
                     if (preset.id == activePreset!!.id)
@@ -135,8 +118,8 @@ fun PortraitHomeScreen(viewModel: ViewModel) {
                             textColor = MaterialTheme.colorScheme.onBackground
                         ),
                         modifier = Modifier
-                            .background(MaterialTheme.colorScheme.background)
-                            .padding(horizontal = 16.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .fillMaxWidth()
                     )
                 }
             }
@@ -270,7 +253,7 @@ fun PortraitHomeScreen(viewModel: ViewModel) {
 }
 
 @Composable
-fun LandscapeHomeScreen(viewModel: ViewModel) {
+fun LandscapeSheetScreen(viewModel: ViewModel) {
     Row(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -398,7 +381,7 @@ fun TopBar(viewModel: ViewModel) {
 fun Modifier.drawBottomShadow(elevation: Dp): Modifier = this.then(
     Modifier.drawBehind {
         val shadowColor = Color(0xFF000000).copy(alpha = 0.10f)
-        val paint = androidx.compose.ui.graphics.Paint().apply {
+        androidx.compose.ui.graphics.Paint().apply {
             color = shadowColor
         }
 

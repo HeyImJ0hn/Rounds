@@ -77,4 +77,5 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.adaptive)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.datastore.preferences)
 }
