@@ -70,10 +70,11 @@ class ViewModel(context: Context) : ViewModel(){
 
     init {
         viewModelScope.launch {
-            Logger.getGlobal().info("ViewModel init")
+            Logger.getGlobal().info("ViewModel initialized")
             initializeRepository()
+            Logger.getGlobal().info("Repository initialized")
             loadUI()
-            Logger.getGlobal().info("Loaded UI")
+            Logger.getGlobal().info("UI loaded")
             _isReady.value = true
         }
     }

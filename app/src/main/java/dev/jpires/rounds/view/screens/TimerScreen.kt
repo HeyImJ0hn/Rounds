@@ -427,7 +427,6 @@ fun SettingsButton(viewModel: ViewModel) {
             tonalElevation = 16.dp
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth()
             ) {
                 Screen(viewModel)
             }

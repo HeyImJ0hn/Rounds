@@ -11,9 +11,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.ViewModelProvider
 import dev.jpires.rounds.ui.theme.RoundsTheme
 import dev.jpires.rounds.view.screens.TimerScreen
 import dev.jpires.rounds.viewmodel.ViewModel
+import dev.jpires.rounds.viewmodel.ViewModelFactory
 
 class MainActivity : ComponentActivity() {
 
@@ -23,7 +25,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        viewModel = ViewModel(application.applicationContext)
+        val factory = ViewModelFactory(applicationContext)
+        viewModel = ViewModelProvider(this, factory)[ViewModel::class.java]
 
         installSplashScreen().apply {
             setKeepOnScreenCondition {

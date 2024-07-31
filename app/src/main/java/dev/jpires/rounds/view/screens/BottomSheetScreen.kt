@@ -1,5 +1,6 @@
 package dev.jpires.rounds.view.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -47,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -56,16 +58,13 @@ import dev.jpires.rounds.viewmodel.ViewModel
 
 @Composable
 fun Screen(viewModel: ViewModel) {
-    val windowSize = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass
-
-    if (windowSize != WindowWidthSizeClass.EXPANDED)
-        PortraitSheetScreen(viewModel)
-    else
-        LandscapeSheetScreen(viewModel)
+    PortraitSheetScreen(viewModel)
 }
 
 @Composable
 fun PortraitSheetScreen(viewModel: ViewModel) {
+    val context = LocalContext.current
+
     val presets by viewModel.allPresets.collectAsState()
     val activePreset by viewModel.activePreset.collectAsState()
 
@@ -73,229 +72,198 @@ fun PortraitSheetScreen(viewModel: ViewModel) {
     var editEnabled by rememberSaveable { mutableStateOf(false) }
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
     var text by rememberSaveable { mutableStateOf(activePreset?.name ?: "") }
+    var isError by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(activePreset) {
         text = activePreset?.name ?: ""
     }
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .padding(horizontal = 16.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = if (editEnabled) text else activePreset!!.name,
-                onValueChange = { text = it },
-                label = { Text("Preset") },
-                modifier = Modifier
-                    .clickable { showMenuDropdown = true }
-                    .weight(1f),
-                singleLine = true,
-                enabled = editEnabled
-            )
-            DropdownMenu(
-                expanded = showMenuDropdown,
-                onDismissRequest = {
-                    showMenuDropdown = false
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+        items(1) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                for (preset in presets) {
-                    if (preset.id == activePreset!!.id)
-                        continue
-                    DropdownMenuItem(
-                        text = { Text(preset.name) },
-                        onClick = {
-                            showMenuDropdown = false
-                            viewModel.setActivePreset(preset)
-                        },
-                        colors = MenuDefaults.itemColors(
-                            textColor = MaterialTheme.colorScheme.onBackground
-                        ),
-                        modifier = Modifier
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .fillMaxWidth()
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            if (editEnabled)
-                IconButton(onClick = {
-                    showMenuDropdown = false
-                    editEnabled = false
-                    viewModel.updatePresetName(activePreset!!, text)
-                }) {
-                    Icon(
-                        imageVector = Icons.Rounded.Save,
-                        contentDescription = "Save",
-                        tint = Color.Red,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .weight(1f)
-                    )
-                }
-            else
-                IconButton(onClick = {
-                    showMenuDropdown = false
-                    editEnabled = true
-                }) {
-                    Icon(
-                        imageVector = Icons.Rounded.Edit,
-                        contentDescription = "Edit",
-                        tint = Color.Red,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .weight(1f)
-                    )
-                }
-            Spacer(modifier = Modifier.width(16.dp))
-            IconButton(onClick = {
-                showMenuDropdown = false
-                viewModel.duplicatePreset(activePreset!!)
-            }) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.PlaylistAdd,
-                    contentDescription = "Duplicate",
-                    tint = Color.Red,
+                OutlinedTextField(
+                    value = if (editEnabled) text.trim() else activePreset!!.name,
+                    onValueChange = { text = it },
+                    label = { Text("Preset") },
                     modifier = Modifier
-                        .size(48.dp)
-                        .weight(1f)
+                        .clickable { showMenuDropdown = true }
+                        .weight(1f),
+                    singleLine = true,
+                    enabled = editEnabled,
+                    isError = isError
                 )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            IconButton(onClick = {
-                showMenuDropdown = false
-                showDeleteDialog = true
-            }) {
-                Icon(
-                    imageVector = Icons.Rounded.DeleteForever,
-                    contentDescription = "Delete",
-                    tint = Color.Red,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .weight(1f)
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Divider()
-        ScreenRow(
-            textTop = viewModel.getFormattedRoundLength(),
-            textBottom = "Round Length",
-            onButtonPlusClick = { viewModel.incrementRoundLength() },
-            onButtonMinusClick = { viewModel.decrementRoundLength() }
-        )
-        ScreenRow(
-            textTop = viewModel.getFormattedRestTime(),
-            textBottom = "Rest Time",
-            onButtonPlusClick = { viewModel.incrementRestTime() },
-            onButtonMinusClick = { viewModel.decrementRestTime() }
-        )
-        ScreenRow(
-            textTop = viewModel.getFormattedRounds(),
-            textBottom = "Rounds",
-            onButtonPlusClick = { viewModel.incrementRounds() },
-            onButtonMinusClick = { viewModel.decrementRounds() }
-        )
-        ScreenRow(
-            textTop = viewModel.getFormattedPrepTime(),
-            textBottom = "Prep Time",
-            onButtonPlusClick = { viewModel.incrementPrepTime() },
-            onButtonMinusClick = { viewModel.decrementPrepTime() }
-        )
-        Spacer(modifier = Modifier.height(48.dp))
-    }
-
-    if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            text = {
-                Text(
-                    text = "Are you sure you want to delete this preset?",
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            },
-            icon = {
-                Icon(
-                    imageVector = Icons.Rounded.DeleteForever,
-                    contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
-            },
-            dismissButton = {
-                Button(
-                    onClick = { showDeleteDialog = false },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent,
-                    )
-                ) {
-                    Text("No", color = MaterialTheme.colorScheme.onBackground)
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showDeleteDialog = false
-                        viewModel.deletePreset(activePreset!!)
+                DropdownMenu(
+                    expanded = showMenuDropdown,
+                    onDismissRequest = {
+                        showMenuDropdown = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                 ) {
-                    Text("Yes", color = MaterialTheme.colorScheme.onBackground)
+                    for (preset in presets) {
+                        if (preset.id == activePreset!!.id)
+                            continue
+                        DropdownMenuItem(
+                            text = { Text(preset.name) },
+                            onClick = {
+                                showMenuDropdown = false
+                                viewModel.setActivePreset(preset)
+                            },
+                            colors = MenuDefaults.itemColors(
+                                textColor = MaterialTheme.colorScheme.onBackground
+                            ),
+                            modifier = Modifier
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .fillMaxWidth()
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                if (editEnabled)
+                    IconButton(onClick = {
+                        showMenuDropdown = false
+
+                        if (text.isNotEmpty()) {
+                            editEnabled = false
+                            viewModel.updatePresetName(activePreset!!, text.trim())
+                        }
+
+                        isError = text.isEmpty()
+
+                    }) {
+                        Icon(
+                            imageVector = Icons.Rounded.Save,
+                            contentDescription = "Save",
+                            tint = Color.Red,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .weight(1f)
+                        )
+                    }
+                else
+                    IconButton(onClick = {
+                        showMenuDropdown = false
+                        editEnabled = true
+                    }) {
+                        Icon(
+                            imageVector = Icons.Rounded.Edit,
+                            contentDescription = "Edit",
+                            tint = Color.Red,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .weight(1f)
+                        )
+                    }
+                Spacer(modifier = Modifier.width(16.dp))
+                IconButton(onClick = {
+                    showMenuDropdown = false
+                    viewModel.duplicatePreset(activePreset!!)
+                }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.PlaylistAdd,
+                        contentDescription = "Duplicate",
+                        tint = Color.Red,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .weight(1f)
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                IconButton(onClick = {
+                    showMenuDropdown = false
+                    if (presets.size == 1) {
+                        Toast.makeText(
+                            context,
+                            "You can't delete the only preset",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        showDeleteDialog = true
+                    }
+                }) {
+                    Icon(
+                        imageVector = Icons.Rounded.DeleteForever,
+                        contentDescription = "Delete",
+                        tint = Color.Red,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .weight(1f)
+                    )
                 }
             }
-        )
-    }
-}
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider()
+            ScreenRow(
+                textTop = viewModel.getFormattedRoundLength(),
+                textBottom = "Round Length",
+                onButtonPlusClick = { viewModel.incrementRoundLength() },
+                onButtonMinusClick = { viewModel.decrementRoundLength() }
+            )
+            ScreenRow(
+                textTop = viewModel.getFormattedRestTime(),
+                textBottom = "Rest Time",
+                onButtonPlusClick = { viewModel.incrementRestTime() },
+                onButtonMinusClick = { viewModel.decrementRestTime() }
+            )
+            ScreenRow(
+                textTop = viewModel.getFormattedRounds(),
+                textBottom = "Rounds",
+                onButtonPlusClick = { viewModel.incrementRounds() },
+                onButtonMinusClick = { viewModel.decrementRounds() }
+            )
+            ScreenRow(
+                textTop = viewModel.getFormattedPrepTime(),
+                textBottom = "Prep Time",
+                onButtonPlusClick = { viewModel.incrementPrepTime() },
+                onButtonMinusClick = { viewModel.decrementPrepTime() }
+            )
+            Spacer(modifier = Modifier.height(48.dp))
 
-@Composable
-fun LandscapeSheetScreen(viewModel: ViewModel) {
-    Row(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        LazyColumn(
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .weight(1f)
-        ) {
-            items(1) {
-                ScreenRow(
-                    textTop = viewModel.getFormattedRoundLength(),
-                    textBottom = "Round Length",
-                    onButtonPlusClick = { viewModel.incrementRoundLength() },
-                    onButtonMinusClick = { viewModel.decrementRoundLength() }
+            if (showDeleteDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteDialog = false },
+                    text = {
+                        Text(
+                            text = "Are you sure you want to delete this preset?",
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Rounded.DeleteForever,
+                            contentDescription = "Delete",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    },
+                    dismissButton = {
+                        Button(
+                            onClick = { showDeleteDialog = false },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.Transparent,
+                            )
+                        ) {
+                            Text("No", color = MaterialTheme.colorScheme.onBackground)
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showDeleteDialog = false
+                                viewModel.deletePreset(activePreset!!)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+                        ) {
+                            Text("Yes", color = MaterialTheme.colorScheme.onBackground)
+                        }
+                    }
                 )
-                ScreenRow(
-                    textTop = viewModel.getFormattedRestTime(),
-                    textBottom = "Rest Time",
-                    onButtonPlusClick = { viewModel.incrementRestTime() },
-                    onButtonMinusClick = { viewModel.decrementRestTime() }
-                )
-                ScreenRow(
-                    textTop = viewModel.getFormattedRounds(),
-                    textBottom = "Rounds",
-                    onButtonPlusClick = { viewModel.incrementRounds() },
-                    onButtonMinusClick = { viewModel.decrementRounds() }
-                )
-                ScreenRow(
-                    textTop = viewModel.getFormattedPrepTime(),
-                    textBottom = "Prep Time",
-                    onButtonPlusClick = { viewModel.incrementPrepTime() },
-                    onButtonMinusClick = { viewModel.decrementPrepTime() }
-                )
-            }
-        }
-        LazyColumn(
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-        ) {
-            items(1) {
             }
         }
     }
@@ -350,54 +318,3 @@ fun ScreenRow(
         Buttons(onButtonPlusClick, onButtonMinusClick)
     }
 }
-
-@Composable
-fun TopBar(viewModel: ViewModel) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(vertical = 8.dp)
-    ) {
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "Training Length: ${viewModel.getFormattedTotalTime()}",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .drawBottomShadow(4.dp)
-        )
-    }
-}
-
-fun Modifier.drawBottomShadow(elevation: Dp): Modifier = this.then(
-    Modifier.drawBehind {
-        val shadowColor = Color(0xFF000000).copy(alpha = 0.10f)
-        androidx.compose.ui.graphics.Paint().apply {
-            color = shadowColor
-        }
-
-        val left = 0f
-        val top = size.height
-        val right = size.width
-        val bottom = size.height + elevation.toPx()
-
-        drawRect(
-            brush = Brush.verticalGradient(
-                colors = listOf(shadowColor, Color.Transparent),
-                startY = top,
-                endY = bottom
-            ),
-            topLeft = androidx.compose.ui.geometry.Offset(left, top),
-            size = androidx.compose.ui.geometry.Size(right - left, bottom - top)
-        )
-    }
-)
