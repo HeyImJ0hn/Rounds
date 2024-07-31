@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Replay
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Stop
@@ -156,7 +157,6 @@ fun SkipRoundButton(viewModel: ViewModel) {
         onClick = { viewModel.skipTimer() },
         border = BorderStroke(2.dp, MaterialTheme.colorScheme.onBackground),
         modifier = Modifier
-            .fillMaxWidth()
             .padding(horizontal = 144.dp)
     ) {
         Text(
@@ -377,7 +377,7 @@ fun StopButton(viewModel: ViewModel) {
                 Button(
                     onClick = {
                         showDialog = false
-                        viewModel.stopTimer()
+                        viewModel.stopTimer(true)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
                 ) {
@@ -461,7 +461,7 @@ fun RestartButton(viewModel: ViewModel) {
         modifier = Modifier.size(96.dp)
     ) {
         Icon(
-            imageVector = Icons.Rounded.RestartAlt,
+            imageVector = Icons.Rounded.Replay,
             contentDescription = "Restart",
             tint = MaterialTheme.colorScheme.tertiary,
             modifier = Modifier.size(48.dp)

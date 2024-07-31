@@ -151,7 +151,7 @@ class ViewModel(context: Context) : ViewModel(){
                 if (currentRound == rounds) {
                     _currentTimer.value = TimerType.FINISHED
                     _isTimerFinished.value = true
-                    stopTimer()
+                    stopTimer(false)
                     break
                 }
                 incrementCurrentRound()
@@ -166,9 +166,9 @@ class ViewModel(context: Context) : ViewModel(){
         timerJob?.cancel()
     }
 
-    fun stopTimer() {
+    fun stopTimer(reset: Boolean) {
         timerJob?.cancel()
-        reset()
+        if (reset) reset()
     }
 
     fun skipTimer() {
