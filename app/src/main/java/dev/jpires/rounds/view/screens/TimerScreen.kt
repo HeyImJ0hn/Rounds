@@ -2,6 +2,7 @@ package dev.jpires.rounds.view.screens
 
 import android.content.Context
 import android.media.MediaPlayer
+import android.view.View
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
@@ -29,6 +30,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -50,7 +52,25 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.window.core.layout.WindowWidthSizeClass
 import dev.jpires.rounds.model.data.TimerType
+import dev.jpires.rounds.ui.theme.RoundsTheme
 import dev.jpires.rounds.viewmodel.ViewModel
+
+@Composable
+fun MainScreen(viewModel: ViewModel) {
+    val themeMode by viewModel.themeMode.collectAsState()
+
+    RoundsTheme(
+        themeMode = themeMode
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            TimerScreen(viewModel)
+        }
+    }
+}
 
 @Composable
 fun TimerScreen(viewModel: ViewModel) {

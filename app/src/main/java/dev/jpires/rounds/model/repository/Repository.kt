@@ -33,11 +33,17 @@ class Repository(private val context: Context) {
 
     companion object {
         val KEY_ACTIVE_PRESET = intPreferencesKey("active_preset")
+        val KEY_THEME_MODE = intPreferencesKey("theme_mode")
     }
 
     val activePresetId: Flow<Int> = context.dataStore.data
         .map { preferences ->
             preferences[KEY_ACTIVE_PRESET] ?: 1
+        }
+
+    val themeMode: Flow<Int> = context.dataStore.data
+        .map { preferences ->
+            preferences[KEY_THEME_MODE] ?: 0
         }
 
     suspend fun initDatabase() {
@@ -95,6 +101,12 @@ class Repository(private val context: Context) {
     suspend fun saveActivePreset(value: Int) {
         context.dataStore.edit { preferences ->
             preferences[KEY_ACTIVE_PRESET] = value
+        }
+    }
+
+    suspend fun saveThemeMode(value: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_THEME_MODE] = value
         }
     }
 

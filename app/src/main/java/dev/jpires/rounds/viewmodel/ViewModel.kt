@@ -3,15 +3,14 @@ package dev.jpires.rounds.viewmodel
 import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.jpires.rounds.R
 import dev.jpires.rounds.model.data.Preset
 import dev.jpires.rounds.model.data.PresetEntity
+import dev.jpires.rounds.model.data.ThemeMode
 import dev.jpires.rounds.model.data.TimerType
 import dev.jpires.rounds.model.repository.Repository
 import kotlinx.coroutines.CoroutineScope
@@ -21,11 +20,9 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
-import java.util.logging.Logger
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
@@ -68,13 +65,15 @@ class ViewModel(context: Context) : ViewModel(){
     private val _isTimerFinished = MutableStateFlow(false)
     val isTimerFinished = _isTimerFinished.asStateFlow()
 
+    private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
+    val themeMode = _themeMode.asStateFlow()
+
     init {
         viewModelScope.launch {
-            Logger.getGlobal().info("ViewModel initialized")
             initializeRepository()
-            Logger.getGlobal().info("Repository initialized")
+            loadTheme()
             loadUI()
-            Logger.getGlobal().info("UI loaded")
+            delay(1000L)
             _isReady.value = true
         }
     }
@@ -83,6 +82,15 @@ class ViewModel(context: Context) : ViewModel(){
         withContext(Dispatchers.IO) {
             repository.initDatabase()
             _allPresets.value = repository.getAllPresets().map { it.toDomainModel() }.toMutableList()
+        }
+    }
+
+    private suspend fun loadTheme() {
+        viewModelScope.launch {
+            repository.themeMode.collect { id ->
+                _themeMode.value = ThemeMode.fromInt(id)
+                cancel()
+            }
         }
     }
 
@@ -381,7 +389,17 @@ class ViewModel(context: Context) : ViewModel(){
         }
     }
 
-    fun getFormattedZero() = formatDuration(Duration.ZERO)
+    fun toggleThemeMode() {
+        _themeMode.value = when (_themeMode.value) {
+            ThemeMode.LIGHT -> ThemeMode.DARK
+            ThemeMode.DARK -> ThemeMode.SYSTEM
+            ThemeMode.SYSTEM -> ThemeMode.LIGHT
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            repository.saveThemeMode(_themeMode.value.ordinal)
+        }
+    }
 
     fun getFormattedRoundLength() = formatDuration(roundLength)
     fun getFormattedRestTime() = formatDuration(restTime)
