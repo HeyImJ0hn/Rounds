@@ -1,10 +1,12 @@
 package dev.jpires.rounds.view.screens
 
 import android.content.Context
+import android.media.Image
 import android.media.MediaPlayer
 import android.view.View
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Replay
@@ -31,6 +34,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
@@ -46,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -54,6 +59,9 @@ import androidx.navigation.NavController
 import androidx.window.core.layout.WindowWidthSizeClass
 import dev.jpires.rounds.model.data.TimerType
 import dev.jpires.rounds.ui.theme.RoundsTheme
+import dev.jpires.rounds.utils.SoundUtils
+import dev.jpires.rounds.utils.TextUtils
+import dev.jpires.rounds.view.composables.Alert
 import dev.jpires.rounds.viewmodel.ViewModel
 
 @Composable
@@ -102,13 +110,6 @@ fun TimerScreen(viewModel: ViewModel) {
                 TimerBottom(viewModel, Modifier.weight(1f))
             }
         }
-}
-
-fun playSound(context: Context, soundResId: Int) {
-    MediaPlayer.create(context, soundResId).apply {
-        start()
-        setOnCompletionListener { release() }
-    }
 }
 
 @Composable
@@ -184,7 +185,7 @@ fun TimerTopTextRoundType(viewModel: ViewModel, modifier: Modifier = Modifier) {
             )
         else
             Text(
-                text = "Total Time: ${viewModel.getFormattedTotalTime()}",
+                text = "Total Time: ${TextUtils.formattedTotalTime(viewModel.calculateTotalTime())}",
                 color = MaterialTheme.colorScheme.tertiary,
                 fontWeight = FontWeight.Black,
                 fontSize = 24.sp
@@ -212,39 +213,6 @@ fun CentralTimer(viewModel: ViewModel) {
 }
 
 @Composable
-fun TotalTime(viewModel: ViewModel) {
-    val currentTimer by viewModel.currentTimer.collectAsState()
-
-    Text(
-        text = when (currentTimer) {
-            TimerType.PREP -> viewModel.getFormattedPrepTime()
-            TimerType.ROUND -> viewModel.getFormattedRoundLength()
-            TimerType.REST -> viewModel.getFormattedRestTime()
-            TimerType.FINISHED -> viewModel.getFormattedRoundLength()
-        },
-        fontSize = 24.sp,
-        fontWeight = FontWeight.Normal,
-        modifier = Modifier.padding(top = 12.dp)
-    )
-}
-
-@Composable
-fun TimerMiddleLine() {
-    Canvas(
-        modifier = Modifier
-            .width(96.dp)
-            .height(2.dp)
-    ) {
-        drawLine(
-            color = Color.Red,
-            start = Offset(0f, size.height / 2),
-            end = Offset(size.width, size.height / 2),
-            strokeWidth = 2f
-        )
-    }
-}
-
-@Composable
 fun TimerCenter(viewModel: ViewModel, modifier: Modifier = Modifier) {
     val windowSize = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass
 
@@ -263,11 +231,19 @@ fun TimerCenter(viewModel: ViewModel, modifier: Modifier = Modifier) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimerBottom(viewModel: ViewModel, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+
     val paused by viewModel.isPaused().collectAsState()
     val started by viewModel.hasStarted().collectAsState()
     val isTimerFinished by viewModel.isTimerFinished.collectAsState()
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var showBottomSheet by rememberSaveable { mutableStateOf(false) }
+
+    var showDialog by remember { mutableStateOf(false) }
 
     Box(
         contentAlignment = Alignment.Center,
@@ -278,193 +254,109 @@ fun TimerBottom(viewModel: ViewModel, modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxWidth()
         ) {
             when {
-                !started -> IdleButtonGroup(viewModel)
-                isTimerFinished -> RestartButton(viewModel)
-                paused -> PausedButtonGroup(viewModel)
-                else -> PauseButtonGroup(viewModel)
+                !started -> UiButtonGroup(viewModel, listOf(
+                    {
+                        UiButton(icon = Icons.Rounded.PlayArrow) {
+                            viewModel.startTimer { soundResId ->
+                                SoundUtils.playSound(context, soundResId)
+                            }
+                        }
+                    },
+                    {
+                        UiButton(icon = Icons.Rounded.Settings) {
+                            showBottomSheet = true
+                        }
+                    }
+                ))
+
+                isTimerFinished -> UiButtonGroup(
+                    viewModel,
+                    listOf { UiButton(icon = Icons.Rounded.Replay) { viewModel.reset() } })
+
+                paused -> UiButtonGroup(viewModel, listOf(
+                    {
+                        UiButton(icon = Icons.Rounded.PlayArrow) {
+                            viewModel.startTimer { soundResId ->
+                                SoundUtils.playSound(context, soundResId )
+                            }
+                        }
+                    },
+                    {
+                        UiButton(icon = Icons.Rounded.Stop) {
+                            showDialog = true
+                        }
+                    }
+                ))
+
+                else -> UiButtonGroup(
+                    viewModel,
+                    listOf { UiButton(icon = Icons.Rounded.Pause) { viewModel.pauseTimer() } })
             }
         }
     }
-}
-
-
-@Composable
-fun PauseButtonGroup(viewModel: ViewModel) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        PauseButton(viewModel)
-    }
-}
-
-@Composable
-fun IdleButtonGroup(viewModel: ViewModel) {
-    val context = LocalContext.current
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        StartButton(viewModel, context)
-        Spacer(modifier = Modifier.width(48.dp))
-        SettingsButton(viewModel)
-    }
-}
-
-@Composable
-fun PausedButtonGroup(viewModel: ViewModel) {
-    val context = LocalContext.current
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        ResumeButton(viewModel, context)
-        Spacer(modifier = Modifier.width(48.dp))
-        StopButton(viewModel)
-    }
-}
-
-@Composable
-fun ResumeButton(viewModel: ViewModel, context: Context) {
-    IconButton(
-        onClick = { viewModel.startTimer { soundResId -> playSound(context, soundResId) } },
-        modifier = Modifier.size(96.dp)
-    ) {
-        Icon(
-            imageVector = Icons.Rounded.PlayArrow,
-            contentDescription = "Resume",
-            tint = MaterialTheme.colorScheme.tertiary,
-            modifier = Modifier.size(48.dp)
-        )
-    }
-}
-
-@Composable
-fun StopButton(viewModel: ViewModel) {
-    var showDialog by remember { mutableStateOf(false) }
-
-    IconButton(
-        onClick = { showDialog = true },
-        modifier = Modifier.size(96.dp)
-    ) {
-        Icon(
-            imageVector = Icons.Rounded.Stop,
-            contentDescription = "Stop",
-            tint = MaterialTheme.colorScheme.tertiary,
-            modifier = Modifier.size(48.dp)
-        )
-    }
 
     if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            text = {
-                Text(
-                    text = "Are you sure you want to stop training?",
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            },
-            dismissButton = {
-                Button(
-                    onClick = { showDialog = false },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent,
-                    )
-                ) {
-                    Text("No", color = MaterialTheme.colorScheme.onBackground)
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showDialog = false
-                        viewModel.stopTimer(true)
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
-                ) {
-                    Text("Yes", color = MaterialTheme.colorScheme.onBackground)
-                }
+        Alert(
+            text = "Are you sure you want to stop training?",
+            dismissButtonText = "No",
+            confirmButtonText = "Yes",
+            icon = Icons.Rounded.Stop,
+            onDismiss = { showDialog = false },
+            onConfirm = {
+                showDialog = false
+                viewModel.stopTimer(true)
             }
-        )
-    }
-}
-
-@Composable
-fun StartButton(viewModel: ViewModel, context: Context) {
-    IconButton(
-        onClick = { viewModel.startTimer { soundResId -> playSound(context, soundResId) } },
-        modifier = Modifier.size(96.dp)
-    ) {
-        Icon(
-            imageVector = Icons.Rounded.PlayArrow,
-            contentDescription = "Start",
-            tint = MaterialTheme.colorScheme.tertiary,
-            modifier = Modifier.size(48.dp)
-        )
-    }
-}
-
-@Composable
-fun PauseButton(viewModel: ViewModel) {
-    IconButton(
-        onClick = { viewModel.pauseTimer() },
-        modifier = Modifier.size(96.dp)
-    ) {
-        Icon(
-            imageVector = Icons.Rounded.Pause,
-            contentDescription = "Pause",
-            tint = MaterialTheme.colorScheme.tertiary,
-            modifier = Modifier.size(48.dp)
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SettingsButton(viewModel: ViewModel) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var showBottomSheet by rememberSaveable { mutableStateOf(false) }
-
-    IconButton(
-        onClick = {
-            showBottomSheet = true
-        },
-        modifier = Modifier.size(96.dp)
-    ) {
-        Icon(
-            imageVector = Icons.Rounded.Settings,
-            contentDescription = "Settings",
-            tint = MaterialTheme.colorScheme.tertiary,
-            modifier = Modifier.size(48.dp)
         )
     }
 
     if (showBottomSheet) {
-        ModalBottomSheet(
-            onDismissRequest = {
-                showBottomSheet = false
-            },
-            sheetState = sheetState,
-            tonalElevation = 16.dp
-        ) {
-            Column(
-            ) {
-                Screen(viewModel)
-            }
+        BottomSheet(
+            onDismiss = { showBottomSheet = false },
+            viewModel = viewModel,
+            sheetState = sheetState
+        )
+    }
+}
+
+@Composable
+fun UiButtonGroup(viewModel: ViewModel, buttons: List<@Composable () -> Unit>) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(48.dp)
+    ) {
+        buttons.forEach { button ->
+            button()
         }
     }
 }
 
 @Composable
-fun RestartButton(viewModel: ViewModel) {
+fun UiButton(icon: ImageVector, action: () -> Unit) {
     IconButton(
-        onClick = { viewModel.reset() },
+        onClick = action,
         modifier = Modifier.size(96.dp)
     ) {
         Icon(
-            imageVector = Icons.Rounded.Replay,
-            contentDescription = "Restart",
+            imageVector = icon,
+            contentDescription = icon.name,
             tint = MaterialTheme.colorScheme.tertiary,
             modifier = Modifier.size(48.dp)
         )
+    }
+
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BottomSheet(onDismiss: () -> Unit, viewModel: ViewModel, sheetState: SheetState) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        tonalElevation = 16.dp
+    ) {
+        Column(
+        ) {
+            Screen(viewModel)
+        }
     }
 }

@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.jpires.rounds.model.data.ThemeMode
+import dev.jpires.rounds.view.composables.Alert
 import dev.jpires.rounds.viewmodel.ViewModel
 
 @Composable
@@ -78,7 +79,7 @@ fun PortraitSheetScreen(viewModel: ViewModel) {
 }
 
 @Composable
-fun Buttons(onButtonPlusClick: () -> Unit, onButtonMinusClick: () -> Unit) {
+fun OptionsButtonGroup(onButtonPlusClick: () -> Unit, onButtonMinusClick: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -243,41 +244,15 @@ fun PresetNameOptions(viewModel: ViewModel) {
     }
 
     if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            text = {
-                Text(
-                    text = "Are you sure you want to delete this preset?",
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            },
-            icon = {
-                Icon(
-                    imageVector = Icons.Rounded.DeleteForever,
-                    contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
-            },
-            dismissButton = {
-                Button(
-                    onClick = { showDeleteDialog = false },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent,
-                    )
-                ) {
-                    Text("No", color = MaterialTheme.colorScheme.onBackground)
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showDeleteDialog = false
-                        viewModel.deletePreset(activePreset!!)
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
-                ) {
-                    Text("Yes", color = MaterialTheme.colorScheme.onBackground)
-                }
+        Alert(
+            text = "Are you sure you want to delete this preset?",
+            dismissButtonText = "No",
+            confirmButtonText = "Yes",
+            icon = Icons.Rounded.DeleteForever,
+            onDismiss = { showDeleteDialog = false },
+            onConfirm = {
+                showDeleteDialog = false
+                viewModel.deletePreset(activePreset!!)
             }
         )
     }
@@ -327,7 +302,7 @@ fun PresetOption(
     ) {
         LabelText(textTop, textBottom)
         Spacer(modifier = Modifier.weight(1f))
-        Buttons(onButtonPlusClick, onButtonMinusClick)
+        OptionsButtonGroup(onButtonPlusClick, onButtonMinusClick)
     }
 }
 
@@ -341,7 +316,6 @@ fun Settings(viewModel: ViewModel) {
 @Composable
 fun ButtonSetting(viewModel: ViewModel) {
     val theme by viewModel.themeMode.collectAsState()
-    val context = LocalContext.current
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -349,9 +323,7 @@ fun ButtonSetting(viewModel: ViewModel) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         LabelText(textTop = "Theme", textBottom = "Change app theme")
-
         Spacer(modifier = Modifier.weight(1f))
-
         IconButton(
             onClick = {
                 viewModel.toggleThemeMode()

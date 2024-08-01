@@ -1,21 +1,15 @@
 package dev.jpires.rounds.model.repository
 
 import android.content.Context
-import androidx.datastore.dataStore
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
-import androidx.room.RoomDatabase
-import androidx.sqlite.db.SupportSQLiteDatabase
 import dev.jpires.rounds.model.data.PresetEntity
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.logging.Logger
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -53,7 +47,7 @@ class Repository(private val context: Context) {
         }
     }
 
-    suspend fun loadAllPresets() {
+    private suspend fun loadAllPresets() {
         presetEntities = presetDao.getAll()
     }
 
@@ -98,13 +92,13 @@ class Repository(private val context: Context) {
         return presetEntities
     }
 
-    suspend fun saveActivePreset(value: Int) {
+    suspend fun updateActivePreset(value: Int) {
         context.dataStore.edit { preferences ->
             preferences[KEY_ACTIVE_PRESET] = value
         }
     }
 
-    suspend fun saveThemeMode(value: Int) {
+    suspend fun updateThemeMode(value: Int) {
         context.dataStore.edit { preferences ->
             preferences[KEY_THEME_MODE] = value
         }

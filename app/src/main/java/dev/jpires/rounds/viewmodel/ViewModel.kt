@@ -13,6 +13,7 @@ import dev.jpires.rounds.model.data.PresetEntity
 import dev.jpires.rounds.model.data.ThemeMode
 import dev.jpires.rounds.model.data.TimerType
 import dev.jpires.rounds.model.repository.Repository
+import dev.jpires.rounds.utils.TextUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -22,44 +23,43 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Locale
+import kotlin.reflect.KMutableProperty0
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.DurationUnit
 
 class ViewModel(context: Context) : ViewModel(){
     private val repository = Repository(context)
 
-    private var _isReady = MutableStateFlow(false)
-    val isReady = _isReady.asStateFlow()
+    private var timerJob: Job? = null
 
-    private var _activePreset = MutableStateFlow<Preset?>(null)
-    val activePreset = _activePreset.asStateFlow()
-
-    private var _allPresets = MutableStateFlow<MutableList<Preset>>(mutableListOf())
-    val allPresets = _allPresets.asStateFlow()
-
+    private var rounds: Int by mutableIntStateOf(1)
+    private var currentRound: Int by mutableIntStateOf(1)
     private var roundLength: Duration by mutableStateOf(Duration.ZERO)
     private var restTime: Duration by mutableStateOf(Duration.ZERO)
     private var prepTime: Duration by mutableStateOf(Duration.ZERO)
-    private var rounds: Int by mutableIntStateOf(1)
 
-    private var currentRound: Int by mutableIntStateOf(1)
+    private val paused  = MutableStateFlow(false)
+    private val started = MutableStateFlow(false)
 
-    private var _currentRoundTime = MutableStateFlow(roundLength)
+    private val _isReady = MutableStateFlow(false)
+    val isReady = _isReady.asStateFlow()
+
+    private val _activePreset = MutableStateFlow<Preset?>(null)
+    val activePreset = _activePreset.asStateFlow()
+
+    private val _allPresets = MutableStateFlow<MutableList<Preset>>(mutableListOf())
+    val allPresets = _allPresets.asStateFlow()
+
+    private val _currentRoundTime = MutableStateFlow(roundLength)
     val currentRoundTime = _currentRoundTime.asStateFlow()
 
-    private var _currentRestTime = MutableStateFlow(restTime)
+    private val _currentRestTime = MutableStateFlow(restTime)
     val currentRestTime = _currentRestTime.asStateFlow()
 
-    private var _currentPrepTime = MutableStateFlow(prepTime)
+    private val _currentPrepTime = MutableStateFlow(prepTime)
     val currentPrepTime = _currentPrepTime.asStateFlow()
 
-    private var paused  = MutableStateFlow(false)
-    private var started = MutableStateFlow(false)
-    private var timerJob: Job? = null
-
-    private var _currentTimer = MutableStateFlow(TimerType.PREP)
+    private val _currentTimer = MutableStateFlow(TimerType.PREP)
     val currentTimer = _currentTimer.asStateFlow()
 
     private val _isTimerFinished = MutableStateFlow(false)
@@ -73,7 +73,7 @@ class ViewModel(context: Context) : ViewModel(){
             initializeRepository()
             loadTheme()
             loadUI()
-            delay(1000L)
+            delay(1000L) // Delay to allow the UI to update
             _isReady.value = true
         }
     }
@@ -85,34 +85,30 @@ class ViewModel(context: Context) : ViewModel(){
         }
     }
 
+    // Load theme from preferences
     private suspend fun loadTheme() {
         viewModelScope.launch {
             repository.themeMode.collect { id ->
                 _themeMode.value = ThemeMode.fromInt(id)
-                cancel()
+                cancel() // Cancel the scope when the theme is loaded, otherwise it will keep listening
             }
         }
     }
 
     private suspend fun loadUI() {
         viewModelScope.launch {
+            // Load active preset from preferences
             repository.activePresetId.collect { id ->
                 _activePreset.value = _allPresets.value.find { it.id == id }
 
+                // Load preset values
                 _activePreset.value?.let { preset ->
-                    roundLength = preset.roundLength
-                    restTime = preset.restTime
-                    prepTime = preset.prepTime
-                    rounds = preset.rounds
-
-                    _currentRoundTime.value = roundLength
-                    _currentRestTime.value = restTime
-                    _currentPrepTime.value = prepTime
+                    updatePresetValues(preset)
                 }
 
-                if (_activePreset.value != null) {
+                // Cancel the scope when the active preset is loaded, otherwise it will keep listening
+                if (_activePreset.value != null)
                     cancel()
-                }
             }
         }
     }
@@ -122,43 +118,67 @@ class ViewModel(context: Context) : ViewModel(){
         paused.value = false
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
-            while (_currentPrepTime.value >= Duration.ZERO) {
-                _currentTimer.value = TimerType.PREP
-                if (_currentPrepTime.value in 0.seconds..2.seconds)
-                    playSound(R.raw.beep)
-                delay(1000)
-                decrementCurrentPrepTime()
-            }
-            while (currentRound <= rounds) {
-                playSound(R.raw.round_start)
-                while (_currentRoundTime.value >= Duration.ZERO) {
-                    _currentTimer.value = TimerType.ROUND
-                    if (_currentRoundTime.value == 10.seconds)
-                        playSound(R.raw.ten_second_warning)
-                    delay(1000)
-                    decrementCurrentRoundTime()
-                }
-                playSound(R.raw.round_end)
-                while (_currentRestTime.value >= Duration.ZERO && currentRound < rounds) {
-                    _currentTimer.value = TimerType.REST
-                    if (_currentRoundTime.value == 10.seconds)
-                        playSound(R.raw.ten_second_warning)
-                    if (_currentPrepTime.value in 0.seconds..2.seconds)
-                        playSound(R.raw.beep)
-                    delay(1000)
-                    decrementCurrentRestTime()
-                }
-                if (currentRound == rounds) {
-                    _currentTimer.value = TimerType.FINISHED
-                    _isTimerFinished.value = true
-                    stopTimer(false)
-                    break
-                }
-                incrementCurrentRound()
-                resetCurrentRoundTime()
-                resetCurrentRestTime()
-            }
+            runTimer(playSound)
         }
+    }
+
+    // Run the timer logic
+    private suspend fun runTimer(playSound: (Int) -> Unit) {
+        runPrepTimer(playSound)
+        while (currentRound <= rounds) {
+            playSound(R.raw.round_start)
+            runRoundTimer(playSound)
+            playSound(R.raw.round_end)
+            if (currentRound == rounds) {
+                finishTimer()
+                break
+            }
+            runRestTimer(playSound)
+            incrementCurrentRound()
+            resetCurrentRoundTime()
+            resetCurrentRestTime()
+        }
+    }
+
+    // Run the preparation timer
+    private suspend fun runPrepTimer(playSound: (Int) -> Unit) {
+        _currentTimer.value = TimerType.PREP
+        while (_currentPrepTime.value >= Duration.ZERO) {
+            if (_currentPrepTime.value in 0.seconds..2.seconds)
+                playSound(R.raw.beep)
+            delay(1000)
+            decrementCurrentPrepTime()
+        }
+    }
+
+    // Run the round timer
+    private suspend fun runRoundTimer(playSound: (Int) -> Unit) {
+        _currentTimer.value = TimerType.ROUND
+        while (_currentRoundTime.value >= Duration.ZERO) {
+            if (_currentRoundTime.value == 10.seconds)
+                playSound(R.raw.ten_second_warning)
+            delay(1000)
+            decrementCurrentRoundTime()
+        }
+    }
+
+    // Run the rest timer
+    private suspend fun runRestTimer(playSound: (Int) -> Unit) {
+        _currentTimer.value = TimerType.REST
+        while (_currentRestTime.value >= Duration.ZERO && currentRound < rounds) {
+            if (_currentRestTime.value == 10.seconds)
+                playSound(R.raw.ten_second_warning)
+            if (_currentRestTime.value in 0.seconds..2.seconds)
+                playSound(R.raw.beep)
+            delay(1000)
+            decrementCurrentRestTime()
+        }
+    }
+
+    private fun finishTimer() {
+        _currentTimer.value = TimerType.FINISHED
+        _isTimerFinished.value = true
+        stopTimer(false)
     }
 
     fun pauseTimer() {
@@ -184,24 +204,26 @@ class ViewModel(context: Context) : ViewModel(){
         started.value = false
         paused.value = false
         currentRound = 1
-        _currentPrepTime.value = prepTime
-        _currentRoundTime.value = roundLength
-        _currentRestTime.value = restTime
+        resetTimers()
         _currentTimer.value = TimerType.PREP
         _isTimerFinished.value = false
     }
 
-    fun getFormattedCurrentRoundTime(duration: Duration)= formatDuration(duration)
     private fun decrementCurrentRoundTime() {
         if (_currentRoundTime.value >= 0.seconds) {
             _currentRoundTime.value -= 1.seconds
         }
     }
 
-    fun getFormattedCurrentRestTime(duration: Duration) = formatDuration(duration)
     private fun decrementCurrentRestTime() {
         if (_currentRestTime.value >= 0.seconds) {
             _currentRestTime.value -= 1.seconds
+        }
+    }
+
+    private fun decrementCurrentPrepTime() {
+        if (_currentPrepTime.value >= 0.seconds) {
+            _currentPrepTime.value -= 1.seconds
         }
     }
 
@@ -209,56 +231,28 @@ class ViewModel(context: Context) : ViewModel(){
         _currentRestTime.value = restTime
     }
 
-    fun getFormattedCurrentPrepTime(duration: Duration) = formatDuration(duration)
-    private fun decrementCurrentPrepTime() {
-        if (_currentPrepTime.value >= 0.seconds) {
-            _currentPrepTime.value -= 1.seconds
-        }
-    }
-
     private fun resetCurrentRoundTime() {
         _currentRoundTime.value = roundLength
     }
-
-    fun isPaused() = paused
-    fun hasStarted() = started
 
     private fun incrementCurrentRound() {
         currentRound++
     }
 
-    fun resetCurrentRound() {
-        currentRound = 1
-    }
-
-    fun getCurrentRound() = currentRound.toString()
-
     fun incrementRoundLength() {
-         roundLength += 5.seconds
-        _currentRoundTime.value = roundLength
-        updateCurrentPreset()
+        updateDuration(::roundLength, 5.seconds, _currentRoundTime)
     }
 
     fun decrementRoundLength() {
-        if (roundLength > 5.seconds) {
-            roundLength -= 5.seconds
-            _currentRoundTime.value = roundLength
-            updateCurrentPreset()
-        }
+        updateDuration(::roundLength, (-5).seconds, _currentRoundTime)
     }
 
     fun incrementRestTime() {
-        restTime += 5.seconds
-        _currentRestTime.value = restTime
-        updateCurrentPreset()
+        updateDuration(::restTime, 5.seconds, _currentRestTime)
     }
 
     fun decrementRestTime() {
-        if (restTime > 5.seconds) {
-            restTime -= 5.seconds
-            _currentRestTime.value = restTime
-            updateCurrentPreset()
-        }
+        updateDuration(::restTime, (-5).seconds, _currentRestTime)
     }
 
     fun incrementRounds() {
@@ -274,34 +268,11 @@ class ViewModel(context: Context) : ViewModel(){
     }
 
     fun incrementPrepTime() {
-        prepTime += 5.seconds
-        _currentPrepTime.value = prepTime
-        updateCurrentPreset()
+        updateDuration(::prepTime, 5.seconds, _currentPrepTime)
     }
 
     fun decrementPrepTime() {
-        if (prepTime > 5.seconds) {
-            prepTime -= 5.seconds
-            _currentPrepTime.value = prepTime
-            updateCurrentPreset()
-        }
-    }
-
-    private fun calculateTotalTime(): Duration {
-        return (roundLength + restTime) * rounds
-    }
-
-    fun getFormattedTotalTime(): String {
-        val totalSeconds = calculateTotalTime().toLong(DurationUnit.SECONDS)
-        val hours = totalSeconds / 3600
-        val minutes = (totalSeconds % 3600) / 60
-        val seconds = totalSeconds % 60
-
-        return if (hours > 0) {
-            String.format(Locale.ENGLISH,"%d:%02d:%02d", hours, minutes, seconds)
-        } else {
-            String.format(Locale.ENGLISH, "%02d:%02d", minutes, seconds)
-        }
+        updateDuration(::prepTime, (-5).seconds, _currentPrepTime)
     }
 
     private fun updateCurrentPreset() {
@@ -319,8 +290,6 @@ class ViewModel(context: Context) : ViewModel(){
         }
     }
 
-    fun getActivePresetName() = activePreset.value!!.name
-
     fun setActivePreset(preset: Preset) {
         _activePreset.value = preset
 
@@ -334,12 +303,8 @@ class ViewModel(context: Context) : ViewModel(){
         _currentPrepTime.value = prepTime
 
         CoroutineScope(Dispatchers.IO).launch {
-            repository.saveActivePreset(preset.id)
+            repository.updateActivePreset(preset.id)
         }
-    }
-
-    fun duplicateActivePreset() {
-        duplicatePreset(activePreset.value!!)
     }
 
     fun duplicatePreset(preset: Preset) {
@@ -354,31 +319,20 @@ class ViewModel(context: Context) : ViewModel(){
 
         CoroutineScope(Dispatchers.IO).launch {
             repository.addPreset(newPreset)
-            _allPresets.value = repository.getAllPresets().map { it.toDomainModel() }.toMutableList()
+            updatePresetList()
 
             val insertedPreset = repository.getPresetByName("${preset.name} (Copy)")
             setActivePreset(insertedPreset!!.toDomainModel())
         }
     }
 
-    fun deleteActivePreset() {
-        deletePreset(activePreset.value!!)
-    }
-
     fun deletePreset(preset: Preset) {
         CoroutineScope(Dispatchers.IO).launch {
-            _allPresets.value.remove(preset)
+            _allPresets.value.remove(preset) // Remove the preset from the list before deleting it because database can take longer to update
             setActivePreset(_allPresets.value[0])
-
-            val toDelete = preset.toEntityModel()
-
-            repository.deletePreset(toDelete)
-            _allPresets.value = repository.getAllPresets().map { it.toDomainModel() }.toMutableList()
+            repository.deletePreset(preset.toEntityModel())
+            updatePresetList()
         }
-    }
-
-    fun updateActivePresetName(name: String) {
-        updatePresetName(activePreset.value!!, name)
     }
 
     fun updatePresetName(preset: Preset, name: String) {
@@ -397,19 +351,57 @@ class ViewModel(context: Context) : ViewModel(){
         }
 
         CoroutineScope(Dispatchers.IO).launch {
-            repository.saveThemeMode(_themeMode.value.ordinal)
+            repository.updateThemeMode(_themeMode.value.ordinal)
         }
     }
 
-    fun getFormattedRoundLength() = formatDuration(roundLength)
-    fun getFormattedRestTime() = formatDuration(restTime)
-    fun getFormattedPrepTime() = formatDuration(prepTime)
-    fun getFormattedRounds() = rounds.toString()
-    private fun formatDuration(duration: Duration): String {
-        val totalSeconds = duration.toLong(DurationUnit.SECONDS)
-        val minutes = totalSeconds / 60
-        val seconds = totalSeconds % 60
-        return String.format(Locale.ENGLISH, "%02d:%02d", minutes, seconds)
+    // Helper function to update preset values
+    private fun updatePresetValues(preset: Preset) {
+        roundLength = preset.roundLength
+        restTime = preset.restTime
+        prepTime = preset.prepTime
+        rounds = preset.rounds
+        _currentRoundTime.value = roundLength
+        _currentRestTime.value = restTime
+        _currentPrepTime.value = prepTime
     }
 
+    // Helper function to update the list of presets
+    private fun updatePresetList() {
+        _allPresets.value = repository.getAllPresets().map { it.toDomainModel() }.toMutableList()
+    }
+
+    // Helper function to update durations and the corresponding state flow
+    private fun updateDuration(
+        durationProperty: KMutableProperty0<Duration>,
+        increment: Duration,
+        stateFlow: MutableStateFlow<Duration>
+    ) {
+        if (durationProperty.get() + increment <= 0.seconds) return
+        durationProperty.set(durationProperty.get().plus(increment))
+        stateFlow.value = durationProperty.get()
+        updateCurrentPreset()
+    }
+
+    // Helper function to reset timers
+    private fun resetTimers() {
+        _currentPrepTime.value = prepTime
+        _currentRoundTime.value = roundLength
+        _currentRestTime.value = restTime
+    }
+
+    fun calculateTotalTime(): Duration {
+        return (roundLength + restTime) * rounds
+    }
+
+    fun isPaused() = paused
+    fun hasStarted() = started
+    fun getCurrentRound() = currentRound.toString()
+    fun getFormattedRounds() = rounds.toString()
+    fun getFormattedRoundLength() = TextUtils.formattedDuration(roundLength)
+    fun getFormattedRestTime() = TextUtils.formattedDuration(restTime)
+    fun getFormattedPrepTime() = TextUtils.formattedDuration(prepTime)
+    fun getFormattedCurrentRoundTime(duration: Duration)= TextUtils.formattedDuration(duration)
+    fun getFormattedCurrentRestTime(duration: Duration) = TextUtils.formattedDuration(duration)
+    fun getFormattedCurrentPrepTime(duration: Duration) = TextUtils.formattedDuration(duration)
 }
