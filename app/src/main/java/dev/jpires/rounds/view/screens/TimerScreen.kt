@@ -1,33 +1,20 @@
 package dev.jpires.rounds.view.screens
 
-import android.content.Context
-import android.media.Image
-import android.media.MediaPlayer
-import android.view.View
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Replay
-import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Stop
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,19 +30,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import androidx.window.core.layout.WindowWidthSizeClass
 import dev.jpires.rounds.model.data.TimerType
 import dev.jpires.rounds.ui.theme.RoundsTheme
@@ -114,6 +97,8 @@ fun TimerScreen(viewModel: ViewModel) {
 
 @Composable
 fun TimerTop(viewModel: ViewModel, modifier: Modifier = Modifier) {
+    val windowSize = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier.fillMaxSize()
@@ -123,7 +108,8 @@ fun TimerTop(viewModel: ViewModel, modifier: Modifier = Modifier) {
         ) {
             TimerTopText(viewModel)
             SkipRoundButton(viewModel)
-            TimerTopTextRoundType(viewModel)
+            if (windowSize != WindowWidthSizeClass.EXPANDED)
+                TimerTopTextRoundType(viewModel)
         }
     }
 }
@@ -156,9 +142,7 @@ fun SkipRoundButton(viewModel: ViewModel) {
     OutlinedButton(
         enabled = started,
         onClick = { viewModel.skipTimer() },
-        border = BorderStroke(2.dp, MaterialTheme.colorScheme.onBackground),
-        modifier = Modifier
-            .padding(horizontal = 144.dp)
+        border = BorderStroke(2.dp, MaterialTheme.colorScheme.onBackground)
     ) {
         Text(
             text = "SKIP",
@@ -221,7 +205,7 @@ fun TimerCenter(viewModel: ViewModel, modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxSize()
     ) {
         if (windowSize == WindowWidthSizeClass.EXPANDED)
-            TimerTopTextRoundType(viewModel, Modifier.align(Alignment.TopCenter))
+            TimerTopTextRoundType(viewModel, Modifier.align(Alignment.TopCenter).padding(top = 48.dp))
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth()
@@ -243,7 +227,7 @@ fun TimerBottom(viewModel: ViewModel, modifier: Modifier = Modifier) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showBottomSheet by rememberSaveable { mutableStateOf(false) }
 
-    var showDialog by remember { mutableStateOf(false) }
+    var showDialog by rememberSaveable { mutableStateOf(false) }
 
     Box(
         contentAlignment = Alignment.Center,
@@ -254,7 +238,7 @@ fun TimerBottom(viewModel: ViewModel, modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxWidth()
         ) {
             when {
-                !started -> UiButtonGroup(viewModel, listOf(
+                !started -> UiButtonGroup(listOf(
                     {
                         UiButton(icon = Icons.Rounded.PlayArrow) {
                             viewModel.startTimer { soundResId ->
@@ -268,12 +252,8 @@ fun TimerBottom(viewModel: ViewModel, modifier: Modifier = Modifier) {
                         }
                     }
                 ))
-
-                isTimerFinished -> UiButtonGroup(
-                    viewModel,
-                    listOf { UiButton(icon = Icons.Rounded.Replay) { viewModel.reset() } })
-
-                paused -> UiButtonGroup(viewModel, listOf(
+                isTimerFinished -> UiButtonGroup(listOf { UiButton(icon = Icons.Rounded.Replay) { viewModel.reset() } })
+                paused -> UiButtonGroup(listOf(
                     {
                         UiButton(icon = Icons.Rounded.PlayArrow) {
                             viewModel.startTimer { soundResId ->
@@ -287,10 +267,7 @@ fun TimerBottom(viewModel: ViewModel, modifier: Modifier = Modifier) {
                         }
                     }
                 ))
-
-                else -> UiButtonGroup(
-                    viewModel,
-                    listOf { UiButton(icon = Icons.Rounded.Pause) { viewModel.pauseTimer() } })
+                else -> UiButtonGroup(listOf { UiButton(icon = Icons.Rounded.Pause) { viewModel.pauseTimer() } })
             }
         }
     }
@@ -319,7 +296,7 @@ fun TimerBottom(viewModel: ViewModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun UiButtonGroup(viewModel: ViewModel, buttons: List<@Composable () -> Unit>) {
+fun UiButtonGroup(buttons: List<@Composable () -> Unit>) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(48.dp)

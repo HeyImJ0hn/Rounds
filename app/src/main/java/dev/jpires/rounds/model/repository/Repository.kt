@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import java.util.logging.Logger
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -23,7 +24,7 @@ class Repository(private val context: Context) {
     private val presetDao = db.presetDao()
     private lateinit var presetEntities: MutableList<PresetEntity>
 
-    private val Context.dataStore by preferencesDataStore(name = "data")
+    private val Context.dataStore by preferencesDataStore(name = "rounds-preferences")
 
     companion object {
         val KEY_ACTIVE_PRESET = intPreferencesKey("active_preset")

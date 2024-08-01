@@ -21,7 +21,7 @@ private val DarkColorScheme = darkColorScheme(
     primary = Color.White,
     secondary = Color.Black,
     onSecondary = Color.White,
-    tertiary = Color.Red,
+    tertiary = CustomRed,
     background = Color.Black,
     onBackground = Color.White,
     surface = Color.Black,
@@ -33,7 +33,7 @@ private val LightColorScheme = lightColorScheme(
     primary = Color.Black,
     secondary = Color.White,
     onSecondary = Color.Black,
-    tertiary = Color.Red,
+    tertiary = CustomRed,
     background = Color.White,
     onBackground = Color.Black,
     surface = Color.White,
@@ -77,7 +77,7 @@ fun RoundsTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.background.toArgb()
+            window.statusBarColor = Color.Transparent.toArgb()
             window.navigationBarColor = colorScheme.background.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
             WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme

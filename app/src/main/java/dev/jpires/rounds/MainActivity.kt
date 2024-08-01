@@ -30,7 +30,5 @@ class MainActivity : ComponentActivity() {
         setContent {
             MainScreen(viewModel)
         }
-
     }
-
 }

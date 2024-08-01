@@ -87,7 +87,7 @@ fun OptionsButtonGroup(onButtonPlusClick: () -> Unit, onButtonMinusClick: () -> 
             Icon(
                 imageVector = Icons.Rounded.Remove,
                 contentDescription = "Decrement",
-                tint = Color.Red,
+                tint = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.size(48.dp)
             )
         }
@@ -95,7 +95,7 @@ fun OptionsButtonGroup(onButtonPlusClick: () -> Unit, onButtonMinusClick: () -> 
             Icon(
                 imageVector = Icons.Rounded.Add,
                 contentDescription = "Increment",
-                tint = Color.Red,
+                tint = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.size(48.dp)
             )
         }
@@ -185,7 +185,7 @@ fun PresetNameOptions(viewModel: ViewModel) {
                 Icon(
                     imageVector = Icons.Rounded.Save,
                     contentDescription = "Save",
-                    tint = Color.Red,
+                    tint = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier
                         .size(48.dp)
                         .weight(1f)
@@ -199,7 +199,7 @@ fun PresetNameOptions(viewModel: ViewModel) {
                 Icon(
                     imageVector = Icons.Rounded.Edit,
                     contentDescription = "Edit",
-                    tint = Color.Red,
+                    tint = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier
                         .size(48.dp)
                         .weight(1f)
@@ -213,7 +213,7 @@ fun PresetNameOptions(viewModel: ViewModel) {
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.PlaylistAdd,
                 contentDescription = "Duplicate",
-                tint = Color.Red,
+                tint = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier
                     .size(48.dp)
                     .weight(1f)
@@ -235,7 +235,7 @@ fun PresetNameOptions(viewModel: ViewModel) {
             Icon(
                 imageVector = Icons.Rounded.DeleteForever,
                 contentDescription = "Delete",
-                tint = Color.Red,
+                tint = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier
                     .size(48.dp)
                     .weight(1f)
@@ -340,7 +340,7 @@ fun ButtonSetting(viewModel: ViewModel) {
                     ThemeMode.LIGHT -> "Light Mode"
                     ThemeMode.SYSTEM -> "System Mode"
                 },
-                tint = Color.Red,
+                tint = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.size(48.dp)
             )
         }
