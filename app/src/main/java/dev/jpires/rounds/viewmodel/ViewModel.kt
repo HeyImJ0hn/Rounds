@@ -27,9 +27,7 @@ import kotlin.reflect.KMutableProperty0
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
-class ViewModel(context: Context) : ViewModel(){
-    private val repository = Repository(context)
-
+class ViewModel(private val repository: Repository) : ViewModel(){
     private var timerJob: Job? = null
 
     private var rounds: Int by mutableIntStateOf(1)

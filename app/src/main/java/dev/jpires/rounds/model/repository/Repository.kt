@@ -1,6 +1,8 @@
 package dev.jpires.rounds.model.repository
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -14,7 +16,7 @@ import java.util.logging.Logger
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
-class Repository(private val context: Context) {
+class Repository(private val context: Context, private val dataStore: DataStore<Preferences>) {
 
     private val db = Room.databaseBuilder(
         context,
@@ -24,19 +26,17 @@ class Repository(private val context: Context) {
     private val presetDao = db.presetDao()
     private lateinit var presetEntities: MutableList<PresetEntity>
 
-    private val Context.dataStore by preferencesDataStore(name = "rounds-preferences")
-
     companion object {
         val KEY_ACTIVE_PRESET = intPreferencesKey("active_preset")
         val KEY_THEME_MODE = intPreferencesKey("theme_mode")
     }
 
-    val activePresetId: Flow<Int> = context.dataStore.data
+    val activePresetId: Flow<Int> = dataStore.data
         .map { preferences ->
             preferences[KEY_ACTIVE_PRESET] ?: 1
         }
 
-    val themeMode: Flow<Int> = context.dataStore.data
+    val themeMode: Flow<Int> = dataStore.data
         .map { preferences ->
             preferences[KEY_THEME_MODE] ?: 0
         }
@@ -94,13 +94,13 @@ class Repository(private val context: Context) {
     }
 
     suspend fun updateActivePreset(value: Int) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[KEY_ACTIVE_PRESET] = value
         }
     }
 
     suspend fun updateThemeMode(value: Int) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[KEY_THEME_MODE] = value
         }
     }
