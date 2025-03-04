@@ -1,5 +1,5 @@
 # Rounds
- A boxing round timer app
+ A boxing round timer app - Available on [Google Play](https://play.google.com/store/apps/details?id=dev.jpires.rounds&hl=en)
  
 ### Preview:
 ![alt text](https://i.imgur.com/ctSDnCY.png "Main Page")
