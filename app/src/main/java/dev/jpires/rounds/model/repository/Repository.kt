@@ -29,6 +29,7 @@ class Repository(private val context: Context, private val dataStore: DataStore<
     companion object {
         val KEY_ACTIVE_PRESET = intPreferencesKey("active_preset")
         val KEY_THEME_MODE = intPreferencesKey("theme_mode")
+        val KEY_ALWAYS_ON = intPreferencesKey("always_on")
     }
 
     val activePresetId: Flow<Int> = dataStore.data
@@ -39,6 +40,11 @@ class Repository(private val context: Context, private val dataStore: DataStore<
     val themeMode: Flow<Int> = dataStore.data
         .map { preferences ->
             preferences[KEY_THEME_MODE] ?: 0
+        }
+
+    val alwaysOn: Flow<Int> = dataStore.data
+        .map { preferences ->
+            preferences[KEY_ALWAYS_ON] ?: 0
         }
 
     suspend fun initDatabase() {
@@ -102,6 +108,12 @@ class Repository(private val context: Context, private val dataStore: DataStore<
     suspend fun updateThemeMode(value: Int) {
         dataStore.edit { preferences ->
             preferences[KEY_THEME_MODE] = value
+        }
+    }
+
+    suspend fun updateAlwaysOn(value: Int) {
+        dataStore.edit { preferences ->
+            preferences[KEY_ALWAYS_ON] = value
         }
     }
 

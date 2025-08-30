@@ -6,14 +6,14 @@ plugins {
 
 android {
     namespace = "dev.jpires.rounds"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "dev.jpires.rounds"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 2
-        versionName = "Alpha 1.0"
+        targetSdk = 35
+        versionCode = 3
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

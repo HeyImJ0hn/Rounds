@@ -66,10 +66,14 @@ class ViewModel(private val repository: Repository) : ViewModel(){
     private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
     val themeMode = _themeMode.asStateFlow()
 
+    private val _alwaysOn = MutableStateFlow(false)
+    val alwaysOn = _alwaysOn.asStateFlow()
+
     init {
         viewModelScope.launch {
             initializeRepository()
             loadTheme()
+            loadSettings()
             loadUI()
             delay(1000L) // Delay to allow the UI to update
             _isReady.value = true
@@ -89,6 +93,15 @@ class ViewModel(private val repository: Repository) : ViewModel(){
             repository.themeMode.collect { id ->
                 _themeMode.value = ThemeMode.fromInt(id)
                 cancel() // Cancel the scope when the theme is loaded, otherwise it will keep listening
+            }
+        }
+    }
+
+    private suspend fun loadSettings() {
+        viewModelScope.launch {
+            repository.alwaysOn.collect { value ->
+                _alwaysOn.value = value != 0
+                cancel()
             }
         }
     }
@@ -350,6 +363,14 @@ class ViewModel(private val repository: Repository) : ViewModel(){
 
         CoroutineScope(Dispatchers.IO).launch {
             repository.updateThemeMode(_themeMode.value.ordinal)
+        }
+    }
+
+    fun toggleAlwaysOn() {
+        _alwaysOn.value = !_alwaysOn.value
+
+        CoroutineScope(Dispatchers.IO).launch {
+            repository.updateAlwaysOn(if (_alwaysOn.value) 1 else 0)
         }
     }
 

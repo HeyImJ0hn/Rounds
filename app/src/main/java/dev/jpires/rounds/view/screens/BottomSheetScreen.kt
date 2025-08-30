@@ -1,5 +1,6 @@
 package dev.jpires.rounds.view.screens
 
+import android.graphics.drawable.Icon
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -34,6 +35,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -308,41 +312,80 @@ fun PresetOption(
 
 @Composable
 fun Settings(viewModel: ViewModel) {
+    val theme by viewModel.themeMode.collectAsState()
+    val alwaysOn by viewModel.alwaysOn.collectAsState()
+
     Column {
-        ButtonSetting(viewModel)
+        ButtonSetting(
+            textTop = "Theme",
+            textBottom = "Change app theme",
+            icon = {
+                Icon(
+                    imageVector = when (theme) {
+                        ThemeMode.DARK -> Icons.Rounded.DarkMode
+                        ThemeMode.LIGHT -> Icons.Rounded.LightMode
+                        ThemeMode.SYSTEM -> Icons.Rounded.BrightnessAuto
+                    },
+                    contentDescription = when (theme) {
+                        ThemeMode.DARK -> "Dark Mode"
+                        ThemeMode.LIGHT -> "Light Mode"
+                        ThemeMode.SYSTEM -> "System Mode"
+                    },
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(48.dp)
+                )
+            },
+            onClick = { viewModel.toggleThemeMode() }
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        SwitchButtonSetting(
+            textTop = "Always On",
+            textBottom = "Keep the screen on",
+            enabled = alwaysOn,
+        ) {
+            viewModel.toggleAlwaysOn()
+        }
     }
 }
 
 @Composable
-fun ButtonSetting(viewModel: ViewModel) {
-    val theme by viewModel.themeMode.collectAsState()
-
+fun ButtonSetting(textTop: String, textBottom: String, icon: @Composable () -> Unit, onClick: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        LabelText(textTop = "Theme", textBottom = "Change app theme")
+        LabelText(textTop = textTop, textBottom = textBottom)
         Spacer(modifier = Modifier.weight(1f))
         IconButton(
-            onClick = {
-                viewModel.toggleThemeMode()
-            }
+            onClick = { onClick() }
         ) {
-            Icon(
-                imageVector = when (theme) {
-                    ThemeMode.DARK -> Icons.Rounded.DarkMode
-                    ThemeMode.LIGHT -> Icons.Rounded.LightMode
-                    ThemeMode.SYSTEM -> Icons.Rounded.BrightnessAuto
-                },
-                contentDescription = when (theme) {
-                    ThemeMode.DARK -> "Dark Mode"
-                    ThemeMode.LIGHT -> "Light Mode"
-                    ThemeMode.SYSTEM -> "System Mode"
-                },
-                tint = MaterialTheme.colorScheme.tertiary,
-                modifier = Modifier.size(48.dp)
-            )
+            icon()
         }
+    }
+}
+
+@Composable
+fun SwitchButtonSetting(
+    textTop: String,
+    textBottom: String,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        LabelText(textTop = textTop, textBottom = textBottom)
+        Spacer(modifier = Modifier.weight(1f))
+        Switch(
+            checked = enabled,
+            onCheckedChange = { onClick() },
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = MaterialTheme.colorScheme.tertiary,
+                uncheckedThumbColor = Color.Gray
+            ),
+        )
     }
 }

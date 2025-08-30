@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,6 +51,9 @@ import dev.jpires.rounds.viewmodel.ViewModel
 @Composable
 fun MainScreen(viewModel: ViewModel) {
     val themeMode by viewModel.themeMode.collectAsState()
+    val alwaysOn by viewModel.alwaysOn.collectAsState()
+
+    LocalView.current.keepScreenOn = alwaysOn
 
     RoundsTheme(
         themeMode = themeMode
